@@ -34,9 +34,6 @@ verification and destination path checks.
   `TEMPLATE_EXPECTED_DB_SHA256` and `TEMPLATE_DISALLOWED_DB_SHA256`.
 - `template-php-release.yml`: manual PHP-only FTPS deployment, requires
   `confirm=DEPLOY_PHP`. It does **not** build Astro.
-- `scripts/template-production-boundary-check.py` and
-  `scripts/template-trigger-boundary-check.py`: source-only deployment contract
-  checks. They do not publish files.
 
 Expected repo secrets for supported operations: `ENV_FILE`, `SOURCE_REPO_PAT`,
 `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, and optionally the
