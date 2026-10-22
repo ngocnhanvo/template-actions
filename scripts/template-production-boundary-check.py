@@ -18,6 +18,9 @@ assert "\\n  workflow_dispatch:" not in w, "Build can only be initiated by WordP
 for value in ("VCS_GH_ACTIONS_TOKEN", "get_site_domain", "template-astro.zip",
               "template-staging-build.json", "X_ESC_DEPLOY_TIMESTAMP", "X_ESC_DEPLOY_SIGNATURE"):
     assert value.lower() in php.lower(), "Missing signed deploy protection: " + value
+assert "!defined('VCS_GH_REPO')" in php and "trim(VCS_GH_REPO) === ''" in php, "Deploy routing must be supplied by wp-config.php"
+assert "VCS_GH_REPO !==" not in php, "Unzip endpoint must not bind to a repository name"
+assert "hash_equals($expected, $signature)" in php and "get_site_domain" in php, "Do not weaken signing or destination checks"
 assert ready == "TEMPLATE_ASTRO_UNZIP_PROTOCOL=2"
 assert "/template-unzip.php" in client and "TEMPLATE_ASTRO_UNZIP_PROTOCOL=2" in client
 assert "template-astro.zip" in ftp
