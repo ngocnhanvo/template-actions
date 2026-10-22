@@ -59,13 +59,31 @@ jobs:
               ftp.prot_p()
               print('FTPS_LOGIN_AND_PROTECTED_DATA=PASS',flush=True)
               stage='wordPress_root'
-              ftp.cwd(root)
-              if ftp.pwd().rstrip('/')!=root:
-                  raise RuntimeError('target root mismatch')
-              ftp.voidcmd('TYPE I')
-              if ftp.size('wp-load.php') is None:
-                  raise RuntimeError('WordPress root marker absent')
-              print('FTPS_WORDPRESS_ROOT=PASS',flush=True)
+              # DirectAdmin account-level logins may expose /domains/<host>/public_html;
+              # directory-scoped FTP accounts may be chrooted directly to public_html.
+              chosen=None
+              for label,target in (('CANONICAL',root),('JAILED_ROOT','/'),('HOME_PUBLIC_HTML','/public_html')):
+                  try:
+                      ftp.cwd(target)
+                      current=ftp.pwd().rstrip('/') or '/'
+                      if label=='CANONICAL' and current!=root:
+                          continue
+                      ftp.voidcmd('TYPE I')
+                      if ftp.size('wp-load.php') is None:
+                          continue
+                      ftp.cwd('wp-admin')
+                      ftp.cwd(target)
+                      chosen=label
+                      print('FTPS_WORDPRESS_ROOT=PASS; mode='+label,flush=True)
+                      break
+                  except ftplib.all_errors:
+                      continue
+              if not chosen:
+                  raise RuntimeError('no recognizable WordPress root in canonical or jailed paths')
+              if chosen!='CANONICAL':
+                  print('FTPS_RELEASE_PATH_COMPATIBILITY=FAIL; FTP account jailed outside expected canonical path',flush=True)
+              else:
+                  print('FTPS_RELEASE_PATH_COMPATIBILITY=PASS',flush=True)
               stage='upload'
               payload=('FTPS_TEMPLATE_TEMP_PROBE_'+secrets.token_hex(24)).encode()
               ftp.storbinary('STOR '+name,io.BytesIO(payload))
