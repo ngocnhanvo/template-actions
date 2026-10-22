@@ -1,17 +1,49 @@
-# psevn-actions
+# Template Actions — WordPress-controlled deployment and read-only tests
 
-Automation and browser-testing repository for the PSE project.
+Repository: `ngocnhanvo/template-actions` (branch `main`).
 
-Imported code must be reviewed and adapted from EduResearch Hub before activation. No workflow deployment to nghiencuukhoahoc.webnvn.com is authorized for PSE.
+## Source of truth and branches
 
-## Shared Playwright (knowledge-actions)
+- Astro development/testing: `ngocnhanvo/template-astro` → `github`.
+- Astro production source: `ngocnhanvo/template-astro` → `master`.
+- WordPress/PHP: `ngocnhanvo/template-php` → `master`.
+- Shared Chromium testing: `ngocnhanvo/knowledge-actions` (reusable workflow, no copying tests).
+- See `ngocnhanvo/knowledge` → `main` for the shared engineering rules.
 
-This PSE repository calls the shared browser engine at [ngocnhanvo/knowledge-actions](https://github.com/ngocnhanvo/knowledge-actions) using [pse-shared-playwright.yml](.github/workflows/pse-shared-playwright.yml).
+## Build Website
 
-- `smoke`: tests `https://pse.webnvn.com` in desktop and mobile viewports without any login secret.
-- `wordpress-site-health`: read-only admin browser check on `https://admin-pse.webnvn.com`, with explicit project-specific `WP_ADMIN_USERNAME` and `WP_ADMIN_PASSWORD`; no screenshots, passwords, cookies or raw DB names in public logs.
-- To run an approved suite interactively, use GitHub Actions → PSE shared Playwright checks → Run workflow.
-- Chromium and system libraries are supplied by the pinned Docker image; npm dependency download cache is reused per caller repository.
-- This does **not** deploy PSE or bypass the WordPress/PHP-controlled Astro Build Website tool.
+Only the WordPress admin **Build Website** control dispatches `wp_trigger_build` to
+`.github/workflows/template-production-deploy.yml`. The workflow checks out Astro
+`master`, validates `WC_URL` and `WC_URL_CLIENT` from `ENV_FILE`, builds the
+production source, packages the public Astro assets, and activates the archive
+through the signed `template-unzip.php` endpoint. No site domain, FTP target,
+WordPress database name, or Google OAuth credential is hardcoded.
 
-Public smoke evidence: [run #39612921299](https://github.com/ngocnhanvo/psevn-actions/actions/runs/39612921299) PASS and [run #39613176502](https://github.com/ngocnhanvo/psevn-actions/actions/runs/39613176502) PASS, second run confirmed npm cache hit.
+WordPress must configure `VCS_GH_OWNER` and `VCS_GH_REPO` in its own
+`wp-config.php`. The MU plugin must not silently override the destination.
+The unzip endpoint retains HMAC authentication, timestamp validation, ZIP SHA-256
+verification and destination path checks.
+
+## Separate operations
+
+- `template-shared-playwright.yml`: manual, read-only `smoke`,
+  `wordpress-site-health` or `wordpress-build-trigger-audit`. It derives both
+  origins from `ENV_FILE`; WordPress checks require `WP_ADMIN_USERNAME` and
+  `WP_ADMIN_PASSWORD`. To compare DB identities without baking in old tenant
+  values, configure optional GitHub Actions repository **Variables**
+  `TEMPLATE_EXPECTED_DB_SHA256` and `TEMPLATE_DISALLOWED_DB_SHA256`.
+- `template-php-release.yml`: manual PHP-only FTPS deployment, requires
+  `confirm=DEPLOY_PHP`. It does **not** build Astro.
+- `scripts/template-production-boundary-check.py` and
+  `scripts/template-trigger-boundary-check.py`: source-only deployment contract
+  checks. They do not publish files.
+
+Expected repo secrets for supported operations: `ENV_FILE`, `SOURCE_REPO_PAT`,
+`FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, and optionally the
+WordPress admin credentials used only by browser tests. Configure these for
+each cloned project; do not reuse a previous customer's endpoints or data.
+
+In code mode **normal**, source changes and source-only tests are allowed.
+Do not dispatch the production build or upload WordPress files over FTP without
+explicit approval. Never assume a sanitized source tree implies a sanitized
+live WordPress database.

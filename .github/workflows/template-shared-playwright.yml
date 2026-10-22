@@ -82,8 +82,10 @@ jobs:
       site_url: ${{ needs.configured-origins.outputs.wordpress_url }}
       expected_hostname: ${{ needs.configured-origins.outputs.wordpress_host }}
       suite: wordpress-site-health
-      # SHA-256 of the named DB guarded in EduResearch PHP source; runtime is checked separately.
-      disallowed_db_sha256: 4cc8a9aafa3629a68481c065d2702f8c9f716fddefa554b954530e5b6906553c
+      # Optional tenant-specific DB fingerprints come from GitHub repository Variables.
+      # Never embed a cloned site's original database identity in a reusable workflow.
+      expected_db_sha256: ${{ vars.TEMPLATE_EXPECTED_DB_SHA256 }}
+      disallowed_db_sha256: ${{ vars.TEMPLATE_DISALLOWED_DB_SHA256 }}
     secrets:
       WP_ADMIN_USERNAME: ${{ secrets.WP_ADMIN_USERNAME }}
       WP_ADMIN_PASSWORD: ${{ secrets.WP_ADMIN_PASSWORD }}
