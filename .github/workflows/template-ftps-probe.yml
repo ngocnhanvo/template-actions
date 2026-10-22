@@ -57,6 +57,7 @@ jobs:
               stage='login'
               ftp.login(os.environ['FTP_USERNAME'],os.environ['FTP_PASSWORD'])
               ftp.prot_p()
+              login_dir=ftp.pwd()
               print('FTPS_LOGIN_AND_PROTECTED_DATA=PASS',flush=True)
               stage='wordPress_root'
               # DirectAdmin account-level logins may expose /domains/<host>/public_html;
@@ -79,8 +80,9 @@ jobs:
                   except ftplib.all_errors:
                       continue
               if not chosen:
-                  raise RuntimeError('no recognizable WordPress root in canonical or jailed paths')
-              if chosen!='CANONICAL':
+                  print('FTPS_WORDPRESS_ROOT=FAIL; probing account default directory only',flush=True)
+                  ftp.cwd(login_dir)
+              elif chosen!='CANONICAL':
                   print('FTPS_RELEASE_PATH_COMPATIBILITY=FAIL; FTP account jailed outside expected canonical path',flush=True)
               else:
                   print('FTPS_RELEASE_PATH_COMPATIBILITY=PASS',flush=True)
