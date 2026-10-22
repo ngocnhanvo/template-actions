@@ -30,4 +30,22 @@ assert ".template-sitemap-deploy-state.json" in seo
 for body in (w,php,client,ftp,revision):
     for old in ("psevn-actions","psevn-astro","psevn-php","nghiencuukhoahoc.webnvn.com"):
         assert old not in body, old
+# Guard the shared Agent against customer-branded responses and old server paths.
+agent_root = Path("source-php/wp-content/mu-plugins/esc-agent/src")
+for relative in (
+    "Core/Planner.php",
+    "Core/AgentSynthesisPrompt.php",
+    "Core/ConversationIntentResolver.php",
+    "Core/EscAgentLogger.php",
+    "Skills/CompanySkill.php",
+    "Skills/ProductSkill.php",
+    "Skills/ProductDetailSkill.php",
+    "Skills/ProductCompareSkill.php",
+    "Skills/PromotionSkill.php",
+    "Skills/PolicySkill.php",
+):
+    agent_source = (agent_root / relative).read_text(encoding="utf-8").lower()
+    for forbidden in ("blue sea", "/home/xuongmunon", "nón/mũ bảo hiểm"):
+        assert forbidden not in agent_source, "Customer-specific Agent dependency: " + relative
+
 print("TEMPLATE_WP_CONTROLLED_DEPLOY_CONTRACT=PASS (no build or upload)")
