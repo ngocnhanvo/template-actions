@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Install only TEMPLATE's GitHub Trigger + signed unzip PHP via verified FTPS.
 
-One-shot release: input is checked-out templatevn-php/master, target is the validated
+One-shot release: input is checked-out template-php/master, target is the validated
 TEMPLATE WordPress docroot. STOR temporary + verified readback; old files are renamed
 to rollback backups before atomic activation. Never touch Astro/frontend root.
 """
