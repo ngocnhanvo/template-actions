@@ -1,16 +1,16 @@
-name: PSE Astro build and deploy via WordPress GitHub Trigger
+name: Template Astro deployment (WordPress Build Website only)
 on:
   repository_dispatch:
     types: [wp_trigger_build]
 permissions:
   contents: read
 concurrency:
-  group: pse-astro-production-deploy
+  group: template-astro-production-deploy
   cancel-in-progress: false
 jobs:
   astro:
     if: >-
-      github.repository == 'ngocnhanvo/psevn-actions'
+      github.repository == 'ngocnhanvo/template-actions'
       && github.ref == 'refs/heads/main'
       && github.event_name == 'repository_dispatch'
       && github.event.action == 'wp_trigger_build'
@@ -22,24 +22,24 @@ jobs:
       FTP_SERVER: ${{ secrets.FTP_SERVER }}
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-      ZIP_PATH: source/upload/pse-astro.zip
-      PSE_PRODUCTION_SOURCE: master
-      PSE_DEPLOY_SOURCE_BRANCH: master
-      PSE_DEPLOY_REQUEST_DOMAIN: ${{ github.event.client_payload.site_domain }}
+      ZIP_PATH: source/upload/template-astro.zip
+      TEMPLATE_PRODUCTION_SOURCE: master
+      TEMPLATE_DEPLOY_SOURCE_BRANCH: master
+      TEMPLATE_DEPLOY_REQUEST_DOMAIN: ${{ github.event.client_payload.site_domain }}
     steps:
-      - name: Checkout immutable PSE deploy scripts
+      - name: Checkout immutable TEMPLATE deploy scripts
         uses: actions/checkout@v4
         with:
           path: actions-hub
       - name: Checkout only Astro PRODUCTION branch
         uses: actions/checkout@v4
         with:
-          repository: ngocnhanvo/psevn-astro
+          repository: ngocnhanvo/template-astro
           ref: master
           token: ${{ secrets.SOURCE_REPO_PAT }}
           path: source
           persist-credentials: false
-      - name: Verify PSE production source and configured WordPress/frontend destinations
+      - name: Verify TEMPLATE production source and configured WordPress/frontend destinations
         shell: bash
         run: |
           set -euo pipefail
@@ -48,7 +48,7 @@ jobs:
           test "$(git -C source symbolic-ref --short HEAD)" = master
           sha="$(git -C source rev-parse HEAD)"
           [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
-          echo "PSE_DEPLOY_COMMIT=$sha" >> "$GITHUB_ENV"
+          echo "TEMPLATE_DEPLOY_COMMIT=$sha" >> "$GITHUB_ENV"
           python3 - <<'PY'
           import os,re
           from urllib.parse import urlsplit
@@ -70,44 +70,40 @@ jobs:
           # Same as inherited NCKH workflow, but migrate-safe: target is
           # derived exclusively from the validated WC_URL_CLIENT, not a new var.
           target='/domains/'+client_host+'/public_html/'
-          if os.environ.get('PSE_DEPLOY_REQUEST_DOMAIN')!=client_host:
+          if os.environ.get('TEMPLATE_DEPLOY_REQUEST_DOMAIN')!=client_host:
               raise RuntimeError('Build trigger domain disagrees with WordPress frontend')
           if any(x in vals for x in ('NCKH_GOOGLE_OAUTH_JSON','NCKH_SESSION_KEY',
-                                     'PSE_GOOGLE_OAUTH_JSON','PSE_SESSION_KEY',
+                                     'TEMPLATE_GOOGLE_OAUTH_JSON','TEMPLATE_SESSION_KEY',
                                      'GOOGLE_OAUTH_STAGING_JSON')):
               raise RuntimeError('Private runtime credentials cannot be written into build .env')
           with open(os.environ['GITHUB_ENV'],'a',encoding='utf8') as out:
-              out.write('PSE_CLIENT_HOST='+client_host+'\n')
-              out.write('PSE_CLIENT_ORIGIN='+client_origin+'\n')
-              out.write('PSE_WP_ORIGIN='+wp_origin+'\n')
+              out.write('TEMPLATE_CLIENT_HOST='+client_host+'\n')
+              out.write('TEMPLATE_CLIENT_ORIGIN='+client_origin+'\n')
+              out.write('TEMPLATE_WP_ORIGIN='+wp_origin+'\n')
               out.write('ASTRO_FTP_TARGET='+target+'\n')
               out.write('FTP_ASTRO_DIR='+target+'\n')
-          print('PASS: PSE master and deployment target derived from WC_URL_CLIENT')
+          print('PASS: TEMPLATE master and deployment target derived from WC_URL_CLIENT')
           PY
-      - name: Refuse inherited EduResearch server endpoints in PSE Astro source
+      - name: Refuse application-specific private runtime in reusable Template
         shell: bash
         run: |
           set -euo pipefail
-          if grep -Eq 'nghiencuukhoahoc|api-nghiencuukhoahoc' \
-              source/src/lib/nckh/serverWp.ts \
-              source/src/lib/nckh/serverSession.ts \
-              source/src/lib/nckh/privateRuntime.ts; then
-            echo "::error::PSE Astro still contains EduResearch backend or private runtime references"
-            exit 1
-          fi
+          test ! -d source/src/lib/nckh
+          test ! -d source/src/pages/api/nckh
+          test ! -d source/src/pages/api/auth/google
       - name: Check signed unzip staging destination before any build or FTP
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m py_compile actions-hub/scripts/pse-remote-unzip.py
-          python3 actions-hub/scripts/pse-remote-unzip.py verify
-      - name: Read deployed sitemap Save token from PSE FTPS (no XML transfer)
+          python3 -m py_compile actions-hub/scripts/template-remote-unzip.py
+          python3 actions-hub/scripts/template-remote-unzip.py verify
+      - name: Read deployed sitemap Save token from TEMPLATE FTPS (no XML transfer)
         shell: bash
         run: |
           set -euo pipefail
           set +x
-          python3 -m py_compile actions-hub/scripts/pse-published-sitemap-revision.py
-          python3 actions-hub/scripts/pse-published-sitemap-revision.py
+          python3 -m py_compile actions-hub/scripts/template-published-sitemap-revision.py
+          python3 actions-hub/scripts/template-published-sitemap-revision.py
       # GitHub-hosted runners are ephemeral: reuse downloaded packages
       # keyed by the Astro production lockfile. Never cache node_modules or .env.
       - name: Set up pnpm 9 (without installing project dependencies)
@@ -127,9 +123,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: source/.cache
-          key: pse-prod-dot-cache-v2-${{ runner.os }}-${{ github.run_id }}
+          key: template-prod-dot-cache-v2-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            pse-prod-dot-cache-v2-${{ runner.os }}-
+            template-prod-dot-cache-v2-${{ runner.os }}-
       - name: Build Astro Production (incremental WordPress data cache)
         shell: bash
         working-directory: source
@@ -145,10 +141,8 @@ jobs:
           node --check dist/server/entry.mjs
           test -s dist/client/index.html
           test -s dist/server/entry.mjs
-          ! grep -q 'xuongmunonbaohiem' dist/client/index.html
-          # Verify that the new application has SSR route records, not just a static homepage.
-          find dist/server -type f | grep -Eq 'pse|auth|so-tay' ||
-            grep -Rq 'api/auth/google/start' dist/server
+          # Generic SSR entrypoint is mandatory.
+          test -s dist/server/entry.mjs
           echo "Build source SHA: $(git rev-parse HEAD) (master)" >> "$GITHUB_STEP_SUMMARY"
       - name: Package only compiled staging output (strictly no .env)
         shell: bash
@@ -166,8 +160,6 @@ jobs:
           test -s deploy/client/index.html
           test -s deploy/server/entry.mjs
           test ! -e deploy/index.html
-          test ! -e deploy/so-tay
-          test ! -e deploy/xem-truoc
           test ! -e deploy/_astro
           # Apache serves these three public metadata files from document-root.
           # The Astro SSR runtime serves app assets from client/, while old root
@@ -182,8 +174,8 @@ jobs:
           import xml.etree.ElementTree as ET
 
           root = Path("deploy")
-          origin = os.environ['PSE_CLIENT_ORIGIN']
-          state_file = root / "client" / ".pse-sitemap-deploy-state.json"
+          origin = os.environ['TEMPLATE_CLIENT_ORIGIN']
+          state_file = root / "client" / ".template-sitemap-deploy-state.json"
           if not state_file.is_file():
               raise RuntimeError("Missing signed-build sitemap Save revision decision")
           state = json.loads(state_file.read_text())
@@ -194,8 +186,8 @@ jobs:
           if not isinstance(rev, str) or re.fullmatch(r"(?:legacy|[a-f0-9-]{36})", rev) is None:
               raise RuntimeError("Unexpected sitemap Save revision")
           # Workflow-local metadata (not uploaded publicly except safe revision
-          # token in the existing pse-staging-build.json).
-          Path(".pse-sitemap-package-state.json").write_text(json.dumps(state))
+          # token in the existing template-staging-build.json).
+          Path(".template-sitemap-package-state.json").write_text(json.dumps(state))
           state_file.unlink()
           published = {}
           for name in ("llms.txt", "robots.txt"):
@@ -226,7 +218,7 @@ jobs:
                       raise RuntimeError("Missing sitemap loc")
                   value = loc.text.strip()
                   p = urlsplit(value)
-                  if p.scheme != "https" or p.netloc != os.environ['PSE_CLIENT_HOST'] or p.query or p.fragment:
+                  if p.scheme != "https" or p.netloc != os.environ['TEMPLATE_CLIENT_HOST'] or p.query or p.fragment:
                       raise RuntimeError("Sitemap loc uses unsafe origin")
                   urls.append(value)
               if not urls or origin + "/" not in urls or len(urls) != len(set(urls)):
@@ -250,11 +242,11 @@ jobs:
           echo "$(date +%s)" > deploy/pm2-reload.txt
           python3 - <<'PY'
           import json,os
-          sha=os.environ['PSE_DEPLOY_COMMIT']
-          state=json.load(open('.pse-sitemap-package-state.json',encoding='utf8'))
-          with open('deploy/pse-staging-build.json','w',encoding='utf8') as handle:
+          sha=os.environ['TEMPLATE_DEPLOY_COMMIT']
+          state=json.load(open('.template-sitemap-package-state.json',encoding='utf8'))
+          with open('deploy/template-staging-build.json','w',encoding='utf8') as handle:
               json.dump({
-                  'branch':'master','commit':sha,'target':os.environ['PSE_CLIENT_HOST'],
+                  'branch':'master','commit':sha,'target':os.environ['TEMPLATE_CLIENT_HOST'],
                   'sitemap_revision':state['revision'],
               },handle)
           PY
@@ -262,20 +254,20 @@ jobs:
           test -s deploy/server/entry.mjs
           test -s deploy/client/index.html
           cd deploy
-          zip -q -r ../upload/pse-astro.zip .
+          zip -q -r ../upload/template-astro.zip .
           cd ..
           python3 - <<'PY'
           import json
           import os
           from zipfile import ZipFile
-          with ZipFile('upload/pse-astro.zip') as z:
+          with ZipFile('upload/template-astro.zip') as z:
               names=z.namelist()
               if '.env' in names or any('private-runtime' in name for name in names):
                   raise RuntimeError('Refusing archive with private runtime secrets')
               # No flattened client output must reappear at root.
-              if any(name in names for name in ('index.html','so-tay/index.html','xem-truoc/index.html','_astro/')):
+              if any(name in names for name in ('index.html','_astro/')):
                   raise RuntimeError('Duplicate application assets outside client/ are forbidden')
-              state=json.load(open('.pse-sitemap-package-state.json',encoding='utf8'))
+              state=json.load(open('.template-sitemap-package-state.json',encoding='utf8'))
               for static in ('llms.txt','robots.txt'):
                   if static not in names or ('client/' + static) not in names:
                       raise RuntimeError('Missing WordPress metadata: ' + static)
@@ -287,10 +279,10 @@ jobs:
                   raise RuntimeError('Saved sitemap missing or mismatched in archive')
               if not state['changed'] and not absent:
                   raise RuntimeError('Unchanged sitemap XML must be excluded from archive')
-              meta=json.loads(z.read('pse-staging-build.json'))
-              if meta.get('branch')!='master' or meta.get('commit')!=os.environ['PSE_DEPLOY_COMMIT'] or meta.get('sitemap_revision')!=state['revision']:
+              meta=json.loads(z.read('template-staging-build.json'))
+              if meta.get('branch')!='master' or meta.get('commit')!=os.environ['TEMPLATE_DEPLOY_COMMIT'] or meta.get('sitemap_revision')!=state['revision']:
                   raise RuntimeError('Archive revision marker mismatch')
-              for required in ('server/entry.mjs','client/index.html','pse-staging-build.json'):
+              for required in ('server/entry.mjs','client/index.html','template-staging-build.json'):
                   if required not in names:raise RuntimeError('Missing staged bundle file: '+required)
           print('PASS: ZIP contains dev server/client and provenance, no private environment file.')
           PY
@@ -304,45 +296,28 @@ jobs:
           fi
       - name: Upload compiled staging archive by FTP-TLS
         shell: bash
-        run: bash actions-hub/scripts/pse-resumable-ftp.sh
+        run: bash actions-hub/scripts/template-resumable-ftp.sh
       - name: Verify provenance and activate staging bundle using signed PHP rollback
         shell: bash
-        run: python3 actions-hub/scripts/pse-remote-unzip.py unpack
-      - name: Check staging page and new private SSR route (GET only)
+        run: python3 actions-hub/scripts/template-remote-unzip.py unpack
+      - name: Verify public homepage after deploy (read-only)
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json,os,urllib.request,urllib.error,time
-          base=os.environ['PSE_CLIENT_ORIGIN']
-          def fetch(path):
-              req=urllib.request.Request(base+path,headers={
-                  'Accept':'application/json' if path.startswith('/api/') else 'text/html',
-                  'Cache-Control':'no-cache',
-                  'User-Agent':'PSE-Stage-AfterDeploy/1.0',
-              })
-              try:
-                  with urllib.request.urlopen(req,timeout=18) as r:
-                      return r.status,r.headers.get('Content-Type',''),r.read(3500)
-              except urllib.error.HTTPError as e:
-                  return e.code,e.headers.get('Content-Type',''),e.read(3500)
-          # Node hosting may need a process restart for a newly uploaded bundle.
-          last=None
+          import os,urllib.request,time
+          url=os.environ['TEMPLATE_CLIENT_ORIGIN']+'/'
+          result=None
           for attempt in range(5):
               try:
-                  home=fetch('/')
-                  session=fetch('/api/auth/me')
-                  notebook=fetch('/so-tay')
-                  if home[0]==200 and 'html' in home[1].lower() and \
-                      session[0]==401 and 'json' in session[1].lower() and \
-                      json.loads(session[2]).get('authenticated') is False and \
-                      notebook[0]==200:
-                      print('PASS: staging DEV homepage, /so-tay and private Astro auth endpoint served over SSR.')
-                      raise SystemExit(0)
-                  last=(home[0],session[0],notebook[0])
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache'}),timeout=18) as resp:
+                      result=(resp.status,resp.headers.get('Content-Type',''))
+                      if resp.status==200 and 'html' in result[1].lower():
+                          print('TEMPLATE_PUBLIC_HOME_SMOKE=PASS')
+                          break
               except Exception as exc:
-                  last=('request-error',type(exc).__name__)
+                  result=(type(exc).__name__,)
               time.sleep(4)
-          print('NOT VERIFIED: staging Node process may need restart; observed:',last)
-          raise SystemExit(1)
+          else:
+              raise RuntimeError('Homepage not verified after deployment: '+str(result))
           PY

@@ -1,29 +1,30 @@
-name: PSE WordPress PHP Trigger release (FTP VERIFIED)
+name: Template PHP deployment (manual opt-in)
 on:
-  push:
-    branches: [main]
-    paths:
-      - .pse-php-live-release-request
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY_PHP to allow WordPress PHP upload (no Astro build)'
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: pse-wp-php-release
+  group: template-wp-php-release
   cancel-in-progress: false
 jobs:
   wordpress-php:
-    if: github.repository == 'ngocnhanvo/psevn-actions'
+    if: github.repository == 'ngocnhanvo/template-actions' && inputs.confirm == 'DEPLOY_PHP'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Checkout PSE Actions deploy script
+      - name: Checkout TEMPLATE Actions deploy script
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Checkout only PSE WordPress PHP master
+      - name: Checkout only TEMPLATE WordPress PHP master
         uses: actions/checkout@v4
         with:
-          repository: ngocnhanvo/psevn-php
+          repository: ngocnhanvo/template-php
           ref: master
           token: ${{ secrets.SOURCE_REPO_PAT }}
           path: source-php
@@ -32,16 +33,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          php -l source-php/pse-unzip.php
+          php -l source-php/template-unzip.php
           php -l source-php/wp-content/plugins/github-trigger/vcs-build-trigger.php
           php -l source-php/wp-content/mu-plugins/esc-github-trigger-config.php
           php -l source-php/wp-content/mu-plugins/esc-seo-files.php
           ! grep -Eqi 'nghiencuukhoahoc|EduResearch Hub' source-php/wp-content/mu-plugins/esc-seo-files.php
           php -l source-php/wp-content/plugins/github-trigger/tests/build-status-regression.php
           php source-php/wp-content/plugins/github-trigger/tests/build-status-regression.php
-          test "$(cat source-php/pse-unzip-v2.ready)" = 'PSE_ASTRO_UNZIP_PROTOCOL=2'
-          python3 -m py_compile scripts/pse-php-live-release.py
-      - name: Release only PSE WordPress PHP files with protected FTPS
+          test "$(cat source-php/template-unzip-v2.ready)" = 'TEMPLATE_ASTRO_UNZIP_PROTOCOL=2'
+          python3 -m py_compile scripts/template-php-live-release.py
+      - name: Release only TEMPLATE WordPress PHP files with protected FTPS
         shell: bash
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
@@ -50,7 +51,7 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           set -euo pipefail
-          python3 scripts/pse-php-live-release.py
+          python3 scripts/template-php-live-release.py
       - name: Probe configured WordPress unzip ready marker (NO BUILD)
         shell: bash
         env:
@@ -76,12 +77,12 @@ jobs:
               and parsed.path in ('','/') and not parsed.query and not parsed.fragment):
               raise RuntimeError('Invalid WordPress HTTPS origin in ENV_FILE')
           client=build_opener(HTTPSHandler(context=ssl.create_default_context()),NoRedirect)
-          url=parsed.geturl().rstrip('/')+'/pse-unzip-v2.ready'
+          url=parsed.geturl().rstrip('/')+'/template-unzip-v2.ready'
           for attempt in range(3):
               try:
                   with client.open(Request(url,method='GET'),timeout=20) as response:
-                      if response.status==200 and response.read(100).strip()==b'PSE_ASTRO_UNZIP_PROTOCOL=2':
-                          print('PSE_WP_UNZIP_READY_MARKER=PASS')
+                      if response.status==200 and response.read(100).strip()==b'TEMPLATE_ASTRO_UNZIP_PROTOCOL=2':
+                          print('TEMPLATE_WP_UNZIP_READY_MARKER=PASS')
                           break
               except Exception:
                   pass

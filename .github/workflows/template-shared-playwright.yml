@@ -1,4 +1,4 @@
-name: PSE shared Playwright checks
+name: Template shared Playwright (manual, read-only)
 
 on:
   workflow_dispatch:
@@ -12,13 +12,6 @@ on:
           - smoke
           - wordpress-site-health
           - wordpress-build-trigger-audit
-  push:
-    branches: [main]
-    paths:
-      - .pse-shared-playwright-smoke-trigger
-      - .pse-shared-playwright-sitehealth-trigger
-      - .pse-shared-build-trigger-audit-trigger
-
 permissions:
   contents: read
 
@@ -65,14 +58,14 @@ jobs:
               raise SystemExit('WordPress/frontend origins must be isolated')
           with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as out:
               for key,value in result.items():out.write(key+'='+value+'\n')
-          print('PSE_PLAYWRIGHT_ORIGINS=PASS; sourced_from=ENV_FILE; no credentials logged')
+          print('TEMPLATE_PLAYWRIGHT_ORIGINS=PASS; sourced_from=ENV_FILE; no credentials logged')
           PY
 
   public-smoke:
     needs: configured-origins
-    name: Test PSE public website
+    name: Test TEMPLATE public website
     if: >-
-      (github.event_name == 'push' && github.event.head_commit.message == 'test: trigger read-only PSE public smoke') || (github.event_name == 'workflow_dispatch' && inputs.suite == 'smoke')
+      (github.event_name == 'push' && github.event.head_commit.message == 'test: trigger read-only TEMPLATE public smoke') || (github.event_name == 'workflow_dispatch' && inputs.suite == 'smoke')
     uses: ngocnhanvo/knowledge-actions/.github/workflows/playwright.yml@main
     with:
       site_url: ${{ needs.configured-origins.outputs.frontend_url }}
@@ -81,9 +74,9 @@ jobs:
 
   wordpress-site-health:
     needs: configured-origins
-    name: Test PSE WordPress Site Health without disclosing DB_NAME
+    name: Test TEMPLATE WordPress Site Health without disclosing DB_NAME
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.suite == 'wordpress-site-health') || (github.event_name == 'push' && github.event.head_commit.message == 'test: trigger read-only PSE WordPress site health')
+      (github.event_name == 'workflow_dispatch' && inputs.suite == 'wordpress-site-health') || (github.event_name == 'push' && github.event.head_commit.message == 'test: trigger read-only TEMPLATE WordPress site health')
     uses: ngocnhanvo/knowledge-actions/.github/workflows/playwright.yml@main
     with:
       site_url: ${{ needs.configured-origins.outputs.wordpress_url }}
@@ -97,9 +90,9 @@ jobs:
 
   wordpress-build-trigger-audit:
     needs: configured-origins
-    name: Read-only audit of PSE WP Build Website dashboard
+    name: Read-only audit of TEMPLATE WP Build Website dashboard
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.suite == 'wordpress-build-trigger-audit') || (github.event_name == 'push' && github.event.head_commit.message == 'test: trigger read-only PSE build UI audit')
+      (github.event_name == 'workflow_dispatch' && inputs.suite == 'wordpress-build-trigger-audit') || (github.event_name == 'push' && github.event.head_commit.message == 'test: trigger read-only TEMPLATE build UI audit')
     uses: ngocnhanvo/knowledge-actions/.github/workflows/playwright.yml@main
     with:
       site_url: ${{ needs.configured-origins.outputs.wordpress_url }}
