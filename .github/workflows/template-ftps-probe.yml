@@ -1,0 +1,106 @@
+name: Template FTPS one-time connectivity and upload probe
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/template-ftps-probe.yml
+permissions:
+  contents: read
+jobs:
+  verify-ftps:
+    if: github.repository == 'ngocnhanvo/template-actions'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+    steps:
+      - name: Test strict FTPS login, one temporary file upload, hash readback and deletion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ftplib, hashlib, io, os, secrets, ssl
+          from urllib.parse import urlsplit
+          stage='configuration'
+          ftp=None
+          uploaded=False
+          name='.template-ftps-probe-'+secrets.token_hex(12)+'.tmp'
+          try:
+              vals={}
+              for line in os.environ.get('ENV_FILE','').splitlines():
+                  line=line.strip()
+                  if line.startswith('export '): line=line[7:].strip()
+                  if line.startswith('WC_URL='):
+                      if 'WC_URL' in vals: raise ValueError('duplicate WordPress origin')
+                      vals['WC_URL']=line.split('=',1)[1].strip().strip('"').strip("'")
+              wp=urlsplit(vals.get('WC_URL',''))
+              if wp.scheme!='https' or not wp.hostname or wp.port not in (None,443) or wp.username or wp.password or wp.path not in ('','/') or wp.query or wp.fragment:
+                  raise ValueError('invalid WordPress origin')
+              raw=os.environ.get('FTP_SERVER','').strip()
+              if '://' not in raw: raw='ftp://'+raw
+              host=urlsplit(raw)
+              if host.scheme not in ('ftp','ftps') or not host.hostname or host.port not in (None,21) or host.username or host.password or host.path.strip('/') or host.query or host.fragment:
+                  raise ValueError('invalid FTP server specification')
+              if not os.environ.get('FTP_USERNAME') or not os.environ.get('FTP_PASSWORD'):
+                  raise ValueError('missing FTP credentials in Actions secrets')
+              root='/domains/'+wp.hostname+'/public_html'
+              ftp=ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=25)
+              stage='connect'
+              ftp.connect(host.hostname,host.port or 21)
+              print('FTPS_TCP_CONNECT=PASS',flush=True)
+              stage='tls'
+              ftp.auth()
+              print('FTPS_TLS_HANDSHAKE=PASS',flush=True)
+              stage='login'
+              ftp.login(os.environ['FTP_USERNAME'],os.environ['FTP_PASSWORD'])
+              ftp.prot_p()
+              print('FTPS_LOGIN_AND_PROTECTED_DATA=PASS',flush=True)
+              stage='wordPress_root'
+              ftp.cwd(root)
+              if ftp.pwd().rstrip('/')!=root:
+                  raise RuntimeError('target root mismatch')
+              ftp.voidcmd('TYPE I')
+              if ftp.size('wp-load.php') is None:
+                  raise RuntimeError('WordPress root marker absent')
+              print('FTPS_WORDPRESS_ROOT=PASS',flush=True)
+              stage='upload'
+              payload=('FTPS_TEMPLATE_TEMP_PROBE_'+secrets.token_hex(24)).encode()
+              ftp.storbinary('STOR '+name,io.BytesIO(payload))
+              uploaded=True
+              print('FTPS_TEMP_UPLOAD=PASS',flush=True)
+              stage='readback'
+              buffer=io.BytesIO()
+              ftp.retrbinary('RETR '+name,buffer.write)
+              if hashlib.sha256(buffer.getvalue()).digest()!=hashlib.sha256(payload).digest():
+                  raise RuntimeError('uploaded data readback mismatch')
+              print('FTPS_SHA256_READBACK=PASS',flush=True)
+              stage='cleanup'
+              ftp.delete(name)
+              uploaded=False
+              try:
+                  ftp.size(name)
+                  raise RuntimeError('probe file still exists')
+              except ftplib.error_perm as e:
+                  if not str(e).startswith('550'):
+                      raise
+              print('FTPS_TEMP_DELETE=PASS',flush=True)
+              print('TEMPLATE_FTPS_CONNECT_UPLOAD_VERIFY_DELETE=PASS',flush=True)
+          except BaseException as e:
+              print('FTPS_PROBE_FAILURE_STAGE='+stage,flush=True)
+              print('FTPS_PROBE_FAILURE_TYPE='+type(e).__name__,flush=True)
+              print('FTPS_PROBE_DETAILS='+str(e).splitlines()[0][:180] if not isinstance(e,(ftplib.error_perm, ftplib.error_temp)) else 'FTPS_PROBE_DETAILS=FTP_SERVER_REJECTED_OPERATION',flush=True)
+              raise SystemExit(1)
+          finally:
+              if ftp:
+                  if uploaded:
+                      try:
+                          ftp.delete(name)
+                          print('FTPS_TEMP_CLEANUP_AFTER_ERROR=PASS',flush=True)
+                      except Exception:
+                          print('FTPS_TEMP_CLEANUP_AFTER_ERROR=FAILED_MANUAL_REVIEW',flush=True)
+                  try: ftp.quit()
+                  except Exception: ftp.close()
+          PY
