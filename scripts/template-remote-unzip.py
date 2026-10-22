@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Signed Astro ZIP deployment for PSE. Uses the inherited SOURCE_REPO_PAT token.
+"""Signed Astro ZIP deployment for TEMPLATE. Uses the inherited SOURCE_REPO_PAT token.
 
 verify: read-only readiness + signed target check, before FTP upload.
 unpack: verify artifact identity, then POST an authenticated unzip instruction.
@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 from urllib.request import build_opener, HTTPRedirectHandler, Request
 from zipfile import ZipFile
 
-READY = "PSE_ASTRO_UNZIP_PROTOCOL=2"
+READY = "TEMPLATE_ASTRO_UNZIP_PROTOCOL=2"
 ORIGIN_PATTERN = re.compile(r"^[a-z0-9][a-z0-9.-]*[a-z0-9]$")
 TARGET_PATTERN = re.compile(r"^/domains/[A-Za-z0-9.-]+/public_html/$")
 
@@ -100,11 +100,11 @@ def main():
     admin_url = env_value(config, "WC_URL")
     _, client_host = validate_url(client_url)
     backend, _ = validate_url(admin_url)
-    # PSE origin is WordPress-managed; a domain migration changes ENV_FILE,
-    # not this deploy tool. The signed PSE-only PHP endpoint verifies the
+    # TEMPLATE origin is WordPress-managed; a domain migration changes ENV_FILE,
+    # not this deploy tool. The signed TEMPLATE-only PHP endpoint verifies the
     # tenant, WordPress-managed frontend domain and FTP destination.
     if not backend or backend == client_url:
-        raise ValueError("Invalid PSE WordPress origin")
+        raise ValueError("Invalid TEMPLATE WordPress origin")
     ftp_target = os.environ["ASTRO_FTP_TARGET"].strip()
     derived = "/domains/%s/public_html/" % client_host
     if not TARGET_PATTERN.fullmatch(ftp_target) or ".." in ftp_target or "//" in ftp_target:
@@ -113,7 +113,7 @@ def main():
     # This path is configured per-project and must exactly correspond to the
     # WordPress-administered frontend origin. Never infer deployment from caller.
     if ftp_target != derived:
-        raise ValueError("PSE FTP target differs from configured frontend origin")
+        raise ValueError("TEMPLATE FTP target differs from configured frontend origin")
     token = os.environ["SOURCE_REPO_PAT"]
     if len(token) < 20:
         raise ValueError("Existing SOURCE_REPO_PAT is unavailable")
@@ -124,39 +124,39 @@ def main():
     }
 
     if mode == "verify":
-        marker = request(backend + "/pse-unzip-v2.ready", timeout=12).strip()
+        marker = request(backend + "/template-unzip-v2.ready", timeout=12).strip()
         if marker != READY:
             raise RuntimeError("unzip-v2.ready is missing or incorrect; deploy the PHP endpoint first")
-        result = signed_post(backend + "/pse-unzip.php", token, {"action": "check", **common}, 30)
+        result = signed_post(backend + "/template-unzip.php", token, {"action": "check", **common}, 30)
         if result.get("host") != client_host or result.get("target") != ftp_target:
             raise RuntimeError("Remote WordPress unzip target does not match the verified FTP target")
         print("SIGNED_UNZIP_PREFLIGHT_OK: %s" % ftp_target)
         return
 
-    archive = Path(os.environ.get("ZIP_PATH", "source/upload/pse-astro.zip"))
+    archive = Path(os.environ.get("ZIP_PATH", "source/upload/template-astro.zip"))
     if not archive.is_file():
         raise ValueError("No Astro deployment ZIP exists")
     # Archived recovery ZIPs from a previous domain must not be deployed to a new domain.
     with ZipFile(archive) as zf:
-        staging = os.environ.get("PSE_STAGING_SOURCE") == "github"
-        production = os.environ.get("PSE_PRODUCTION_SOURCE") == "master"
+        staging = os.environ.get("TEMPLATE_STAGING_SOURCE") == "github"
+        production = os.environ.get("TEMPLATE_PRODUCTION_SOURCE") == "master"
         if staging and production:
-            raise ValueError("Ambiguous PSE deployment source")
+            raise ValueError("Ambiguous TEMPLATE deployment source")
         if staging or production:
             # Both modern deployment paths are credential-free signed ZIPs.
             # The marker name remains compatible with the existing PHP
             # atomic activation and sitemap revision hand-off protocol.
             if ".env" in zf.namelist():
-                raise ValueError("Refusing PSE deploy archive containing public-root .env")
-            manifest = json.loads(zf.read("pse-staging-build.json").decode("utf-8"))
+                raise ValueError("Refusing TEMPLATE deploy archive containing public-root .env")
+            manifest = json.loads(zf.read("template-staging-build.json").decode("utf-8"))
             expected_branch = "master" if production else "github"
-            commit = os.environ.get("PSE_DEPLOY_COMMIT" if production else "PSE_STAGING_COMMIT", "")
+            commit = os.environ.get("TEMPLATE_DEPLOY_COMMIT" if production else "TEMPLATE_STAGING_COMMIT", "")
             if (manifest.get("branch") != expected_branch
                     or manifest.get("commit") != commit
                     or not re.fullmatch(r"[0-9a-f]{40}", commit)
                     or manifest.get("target") != client_host
                     or ftp_target != derived):
-                raise ValueError("Unsigned or mismatched PSE source provenance")
+                raise ValueError("Unsigned or mismatched TEMPLATE source provenance")
         else:
             packaged_env = zf.read(".env").decode("utf-8")
             packaged_url = env_value(packaged_env, "WC_URL_CLIENT")
@@ -171,7 +171,7 @@ def main():
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
             sha.update(chunk)
     expected = sha.hexdigest()
-    result = signed_post(backend + "/pse-unzip.php", token, {
+    result = signed_post(backend + "/template-unzip.php", token, {
         "action": "unpack", **common, "sha256": expected,
     }, 180)
     if (result.get("host") != client_host or result.get("target") != ftp_target

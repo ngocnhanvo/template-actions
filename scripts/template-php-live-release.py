@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Install only PSE's GitHub Trigger + signed unzip PHP via verified FTPS.
+"""Install only TEMPLATE's GitHub Trigger + signed unzip PHP via verified FTPS.
 
-One-shot release: input is checked-out psevn-php/master, target is the validated
-PSE WordPress docroot. STOR temporary + verified readback; old files are renamed
+One-shot release: input is checked-out templatevn-php/master, target is the validated
+TEMPLATE WordPress docroot. STOR temporary + verified readback; old files are renamed
 to rollback backups before atomic activation. Never touch Astro/frontend root.
 """
 from __future__ import annotations
@@ -18,8 +18,8 @@ from urllib.parse import urlsplit
 
 SOURCE = Path("source-php")
 FILES = (
-    "pse-unzip.php",
-    "pse-unzip-v2.ready",
+    "template-unzip.php",
+    "template-unzip-v2.ready",
     "wp-content/mu-plugins/esc-github-trigger-config.php",
     "wp-content/mu-plugins/esc-seo-files.php",
     "wp-content/plugins/github-trigger/vcs-build-trigger.php",
@@ -46,9 +46,9 @@ assert not base.query and not base.fragment and not base.username and not base.p
 root=f"/domains/{base.hostname}/public_html"
 for name in FILES:
     assert (SOURCE/name).is_file() and (SOURCE/name).stat().st_size>0, name
-assert (SOURCE/"pse-unzip-v2.ready").read_text().strip()=="PSE_ASTRO_UNZIP_PROTOCOL=2"
+assert (SOURCE/"template-unzip-v2.ready").read_text().strip()=="TEMPLATE_ASTRO_UNZIP_PROTOCOL=2"
 trigger_php = (SOURCE / "wp-content/plugins/github-trigger/vcs-build-trigger.php").read_text()
-assert "psevn-actions" in trigger_php
+assert "VCS_GH_REPO" in trigger_php
 assert "nghiencuukhoahoc-actions" not in trigger_php
 
 ftp=ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=25)
@@ -85,11 +85,11 @@ try:
     for required in ("wp-load.php","wp-admin","wp-content"):
         # wp-load.php must be readable, WordPress dirs navigable.
         if required.endswith(".php"):
-            assert exists(required), "PSE WordPress root not recognized"
+            assert exists(required), "TEMPLATE WordPress root not recognized"
         else:
             in_dir(root+"/"+required)
             in_dir(root)
-    print("PSE_PHP_RELEASE tls=PASS identity=PASS wp_docroot=PASS")
+    print("TEMPLATE_PHP_RELEASE tls=PASS identity=PASS wp_docroot=PASS")
 
     for rel in FILES:
         directory=root+"/"+str(Path(rel).parent).replace("\\","/")
@@ -99,10 +99,10 @@ try:
         b=(SOURCE/rel).read_bytes()
         digest=hashlib.sha256(b).hexdigest()
         if exists(name) and remote_hash(name)==digest:
-            print("PSE_PHP_RELEASE unchanged="+rel)
+            print("TEMPLATE_PHP_RELEASE unchanged="+rel)
             continue
-        tmp=f".pse-release-{id}-{name}.tmp"
-        bak=f".pse-release-{id}-{name}.backup"
+        tmp=f".template-release-{id}-{name}.tmp"
+        bak=f".template-release-{id}-{name}.backup"
         assert not exists(tmp) and not exists(bak), "Unexpected release tmp/backup collision"
         entry={"dir":directory,"name":name,"tmp":tmp,"bak":bak,"was_there":False,"activated":False}
         processed.append(entry)
@@ -114,16 +114,16 @@ try:
         ftp.rename(tmp,name)
         entry["activated"]=True
         assert remote_hash(name)==digest, "FTP activation hash mismatch"
-        print("PSE_PHP_RELEASE installed="+rel+" sha256_verified=PASS")
+        print("TEMPLATE_PHP_RELEASE installed="+rel+" sha256_verified=PASS")
     # Only after ALL activated and verified, remove rollback backups.
     for ent in processed:
         in_dir(ent["dir"])
         if ent["was_there"]:
             ftp.delete(ent["bak"])
-    print("PSE_PHP_RELEASE completed=PASS files_checked="+str(len(FILES)))
-    print("PSE_PHP_RELEASE no_astro_build=PASS")
+    print("TEMPLATE_PHP_RELEASE completed=PASS files_checked="+str(len(FILES)))
+    print("TEMPLATE_PHP_RELEASE no_astro_build=PASS")
 except BaseException as err:
-    print("PSE_PHP_RELEASE FAILED; restoring previous PHP files where possible")
+    print("TEMPLATE_PHP_RELEASE FAILED; restoring previous PHP files where possible")
     rollback_ok=True
     for ent in reversed(processed):
         try:
@@ -136,8 +136,8 @@ except BaseException as err:
             delete_if_exists(ent["tmp"])
         except Exception:
             rollback_ok=False
-    print("PSE_PHP_RELEASE rollback="+("PASS" if rollback_ok else "PARTIAL_MANUAL_REVIEW_REQUIRED"))
-    print("PSE_PHP_RELEASE error_class="+type(err).__name__)
+    print("TEMPLATE_PHP_RELEASE rollback="+("PASS" if rollback_ok else "PARTIAL_MANUAL_REVIEW_REQUIRED"))
+    print("TEMPLATE_PHP_RELEASE error_class="+type(err).__name__)
     raise SystemExit(1)
 finally:
     try:ftp.quit()

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NCKH Astro archive upload. SHA-256-specific remote names make put -c
+# TEMPLATE Astro archive upload. SHA-256-specific remote names make put -c
 # resumable across Actions jobs and network reconnects.
 set -euo pipefail
 : "${ZIP_PATH:?Set ZIP_PATH to an existing Astro ZIP}"
@@ -8,7 +8,9 @@ set -euo pipefail
 : "${FTP_USERNAME:?Missing FTP_USERNAME}"
 : "${FTP_PASSWORD:?Missing FTP_PASSWORD}"
 test -s "$ZIP_PATH"
-[[ "$ASTRO_FTP_TARGET" == "/domains/nghiencuukhoahoc.webnvn.com/public_html/" ]] || { echo "::error::Wrong NCKH FTP target"; exit 1; }
+: "${TEMPLATE_CLIENT_HOST:?Missing prevalidated frontend hostname}"
+[[ "$TEMPLATE_CLIENT_HOST" =~ ^[a-z0-9][a-z0-9.-]*[a-z0-9]$ ]] || exit 1
+[[ "$ASTRO_FTP_TARGET" == "/domains/${TEMPLATE_CLIENT_HOST}/public_html/" ]] || { echo "::error::TEMPLATE FTP path differs from prevalidated frontend"; exit 1; }
 
 if [[ ! "$ASTRO_FTP_TARGET" =~ ^/[A-Za-z0-9._/-]+/$ ]] ||
    [[ "$ASTRO_FTP_TARGET" == *..* ]] ||
@@ -19,7 +21,7 @@ fi
 local_sha="$(sha256sum "$ZIP_PATH" | cut -d ' ' -f 1)"
 [[ "$local_sha" =~ ^[0-9a-f]{64}$ ]] || exit 1
 local_size="$(stat -c %s "$ZIP_PATH")"
-remote_temp=".nckh-astro.${local_sha}.zip.uploading"
+remote_temp=".template-astro.${local_sha}.zip.uploading"
 started=$SECONDS
 echo "Starting Astro ZIP transfer: bytes=$local_size sha256=$local_sha"
 echo "Remote temporary name is tied to ZIP checksum; existing partial upload can resume."
@@ -36,30 +38,30 @@ set net:timeout 25
 set ftp:passive-mode yes
 set ftp:ssl-force yes
 set ftp:ssl-protect-data yes
-set ssl:verify-certificate no
+set ssl:verify-certificate yes
 set xfer:clobber yes
 cd "$ASTRO_FTP_TARGET"
 put -c "$ZIP_PATH" -o "$remote_temp"
-rm -f nckh-astro.zip
-mv "$remote_temp" nckh-astro.zip
+rm -f template-astro.zip
+mv "$remote_temp" template-astro.zip
 bye
 LFTP
 status=$?
 set -e
-elapsed=$((SECONDS - started))
+elatemplated=$((SECONDS - started))
 if (( status != 0 )); then
-  echo "::error::FTP failed (exit=$status, duration=${elapsed}s); partial SHA-specific archive retained." >&2
+  echo "::error::FTP failed (exit=$status, duration=${elatemplated}s); partial SHA-specific archive retained." >&2
   if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-    printf '%s\n' "- FTP failed after ${elapsed}s; partial archive retained (SHA prefix: ${local_sha:0:12})." >> "$GITHUB_STEP_SUMMARY"
+    printf '%s\n' "- FTP failed after ${elatemplated}s; partial archive retained (SHA prefix: ${local_sha:0:12})." >> "$GITHUB_STEP_SUMMARY"
   fi
   exit "$status"
 fi
-if (( elapsed > 0 )); then
-  mib_sec="$(awk -v bytes="$local_size" -v secs="$elapsed" 'BEGIN {printf "%.2f", bytes / 1048576 / secs}')"
+if (( elatemplated > 0 )); then
+  mib_sec="$(awk -v bytes="$local_size" -v secs="$elatemplated" 'BEGIN {printf "%.2f", bytes / 1048576 / secs}')"
 else
   mib_sec="n/a"
 fi
-echo "Resumable FTP complete in ${elapsed}s; ${local_size} bytes; approx ${mib_sec} MiB/s."
+echo "Resumable FTP complete in ${elatemplated}s; ${local_size} bytes; approx ${mib_sec} MiB/s."
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  printf '%s\n' "- FTP transfer: ${elapsed}s, ${local_size} bytes, approx ${mib_sec} MiB/s, SHA prefix ${local_sha:0:12}." >> "$GITHUB_STEP_SUMMARY"
+  printf '%s\n' "- FTP transfer: ${elatemplated}s, ${local_size} bytes, approx ${mib_sec} MiB/s, SHA prefix ${local_sha:0:12}." >> "$GITHUB_STEP_SUMMARY"
 fi
