@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only inventory for converting an active PSE tri-repo project into a safe reusable template.
+"""Read-only inventory for auditing the three active Template repositories for configuration leaks.
 
 Never opens secrets, uploads, DB exports or FTP. Doesn't modify project sources.
 Runs against exact checked-out repos. Reports names/paths only, not content.
@@ -18,7 +18,7 @@ a = P.parse_args()
 
 checks = {
   "wrong_source_domain": re.compile(r"(?:api-)?nghiencuukhoahoc(?:\.webnvn\.com|\.id\.vn)", re.I),
-  "wrong_source_repository": re.compile(r"ngocnhanvo/(?:nghiencuukhoahoc|xuongmunonbaohiem)-(?:astro|php|actions)", re.I),
+  "wrong_source_repository": re.compile(r"ngocnhanvo/(?:nghiencuukhoahoc|xuongmunonbaohiem|psevn)-(?:astro|php|actions)", re.I),
   "old_brand_label": re.compile(r"EduResearch Hub|Blue Sea|xuongmunonbaohiem", re.I),
   "copied_source_db_guard": re.compile(r"nghiencuukhoahoc_181026"),
   "unrelated_template_slug": re.compile(r'"slug"\s*:\s*"picasso"', re.I),
@@ -39,7 +39,7 @@ for name, root in (("astro",a.astro),("php",a.php),("actions",a.actions)):
         rel = file.relative_to(root).as_posix()
         if any(part in hard_exclude for part in file.relative_to(root).parts) or file.stat().st_size > 350_000:
             continue
-        if name=="php" and not (rel.startswith(("wp-content/mu-plugins/","wp-content/plugins/github-trigger/","tests/","pse-unzip","README","AGENTS"))):
+        if name=="php" and not (rel.startswith(("wp-content/mu-plugins/","wp-content/plugins/github-trigger/","tests/","template-unzip","README","AGENTS"))):
             continue
         total += 1
         try:
