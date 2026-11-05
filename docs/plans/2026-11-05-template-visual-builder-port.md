@@ -17,9 +17,9 @@ Target template-php/master bfd7037b454165dd2c558d2ab1894a903aa4e4b8, template-as
 ## Tasks / evidence
 - [x] PHP port + standalone source/capability/version/mixed-cell/HTML/footer selector tests.
 - [x] Astro port + source markers, portable assets helper, exact selection and safe controls; preserve existing public components.
-- [ ] Offline PHP/Vitest/DOM/browser contracts in separate CI, never production build pipeline; compare independent reference fixtures and retain current target public layout.
+- [x] Offline PHP/Vitest/DOM/browser contracts in separate CI, never production build pipeline; compare independent reference fixtures and retain current target public layout.
 - [x] Fresh code review, fix concrete issues, run full appropriate suites.
-- [ ] Publish PHP then Astro through central source validation, verify SHAs, save final checkpoint and any deployment limits.
+- [x] Publish PHP then Astro through central source validation, verify SHAs, save final checkpoint and any deployment limits.
 
 ## Review corrections
 - Verified rollback readback for Footer Info, BCT Media and native Menu; never claim restore when it failed.
@@ -30,3 +30,6 @@ Target template-php/master bfd7037b454165dd2c558d2ab1894a903aa4e4b8, template-as
 
 ## Validation boundary
 Local: 73 Visual Builder Vitest cases and 8 Astro compiler transforms passed. Runtime PHP and complete Astro suites are validated on the exact central-runner checkout before source commits. Offline Chromium uses actual source guards with independent synthetic fixtures, no site requests or CMS writes. Logged-in live WordPress/ACF/TablePress integration and production rendering are a separate release check and are not claimed by source CI.
+
+## Completed source checkpoint
+PHP 3b178876a0821f0e1c619528e462a8a3bf9de162; Astro 0291d7d5640def31f9ee0d29328ed829fd44397b; QA 53241f7289c1476c830e6e1f0b149738da91ce45. Runtime PHP entrypoints PASS; full Astro 188/188 PASS; offline Chromium desktop/mobile PASS (42058416954). See ../checkpoints/2026-11-05-template-visual-builder-port.md for evidence and the separate normal-mode release boundary.
