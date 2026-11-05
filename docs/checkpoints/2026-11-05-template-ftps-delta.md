@@ -10,8 +10,8 @@ Baseline: template-actions/main 1c459a991259caf74fe56ed28b69a52a47b8c8de; templa
 - [x] Port packagers and signed inventory client; retain full ZIP fallback for older PHP.
 - [x] Add 4 MiB FTPS socket buffer and overlap lftp preparation with Astro build, preserving error handling.
 - [x] Update PHP release allowlist so the helper is installed before its caller; keep FTP deployment manual.
-- [ ] Run offline Python/PHP transport contracts and syntax checks; verify cross-language ZIP reconstruction.
-- [ ] Publish source through source-commit-actions with exact HEAD/path allowlists; verify remote SHAs and CI.
+- [x] Run offline Python/PHP transport contracts and syntax checks; verify cross-language ZIP reconstruction.
+- [x] Publish source through source-commit-actions with exact HEAD/path allowlists; verify remote SHAs and CI.
 
 ## Deployment boundary
 Code mode normal. Source changes do not deploy PHP or build Astro. Until the PHP endpoint is explicitly deployed, the new Actions packager falls back to the existing full ZIP. Do not trigger production build for benchmarking. Next authorized PHP deployment must include template-image-delta.php before template-unzip.php, then a legitimate WordPress Build Website run can measure reuse and upload duration.
@@ -22,6 +22,14 @@ Code mode normal. Source changes do not deploy PHP or build Astro. Until the PHP
 - Retain the PHP protocol's 1 MiB per-marker cap: both packagers measure serialized UTF-8 marker bytes and keep the full ZIP before deleting anything if the marker is too large.
 
 ## Status
-CODE_READY; local 15 Python tests PASS, YAML/shell/diff checks PASS, independent code review PASS. PHP syntax and standalone image/static contracts PASS in source validation run 42014483112; cross-language validation runs in separate offline CI. FTP PHP and Astro production validation NOT_RUN.
+CODE_READY / OFFLINE_CONTRACTS_PASS. Source updates are complete and verified; PHP FTP deployment and Astro production reuse/speed measurements are NOT_RUN.
 
-PHP source validation request: `source-commit-actions/requests/20261105-template-pse-ftps-php-delta-01` (no deployment).
+- PHP: `ngocnhanvo/template-php@master`, commit `bfd7037b454165dd2c558d2ab1894a903aa4e4b8`.
+- Actions implementation: `ngocnhanvo/template-actions@main`, commit `46694781d2370a523ca008ee9ec2787f453d916f`.
+- PHP source validation [42014483112](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/42014483112): PASS; PHP syntax, image/static contracts and remote SHA verified.
+- Actions source validation [42014709451](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/42014709451): PASS; workflow/shell/Python syntax and remote SHA verified.
+- Cross-repo offline CI [42014745102](https://github.com/ngocnhanvo/template-actions/actions/runs/42014745102): PASS; 16 Python tests, both PHP standalone suites, real Python ZIP -> PHP restore, changed-image rejection and preservation of the live fixture. No skipped tests remotely.
+- Independent review: PASS after correcting inherited scope/serialized-size issues documented above. No PSE source was modified.
+
+## Next authorized action
+In normal mode, obtain owner approval before uploading PHP. Deploy the helper before its endpoint, verify FTPS readback and the signed inventory. A later authorized WordPress Build Website run can measure TEMPLATE_IMAGE_DELTA / TEMPLATE_STATIC_DELTA and actual upload seconds/bytes. Until PHP deployment, the new workflow retains full-ZIP fallback. Do not rerun the already-passed offline contracts or build production solely for a benchmark.
