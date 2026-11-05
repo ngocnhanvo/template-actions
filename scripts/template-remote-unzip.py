@@ -2,6 +2,7 @@
 """Signed Astro ZIP deployment for TEMPLATE. Uses the inherited SOURCE_REPO_PAT token.
 
 verify: read-only readiness + signed target check, before FTP upload.
+manifest: authenticated inventory for optional image/public static reuse.
 unpack: verify artifact identity, then POST an authenticated unzip instruction.
 """
 import hashlib
@@ -63,7 +64,12 @@ def request(url, body=None, headers=None, timeout=20):
     req = Request(url, data=body, headers=headers or {}, method=method)
     try:
         with OPENER.open(req, timeout=timeout) as response:
-            return response.read(8192).decode("utf-8")
+            # Both bounded inventories may each contain 5000 entries. Read the
+            # combined JSON completely while retaining an explicit memory limit.
+            raw = response.read(4194305)
+            if len(raw) > 4194304:
+                raise RuntimeError("Unpack response exceeds 4 MiB limit")
+            return raw.decode("utf-8")
     except HTTPError as exc:
         detail = exc.read(1000).decode("utf-8", "replace")
         raise RuntimeError("Unpack server returned HTTP %s: %s" % (exc.code, detail)) from exc
@@ -92,8 +98,8 @@ def signed_post(endpoint, token, data, timeout):
 
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in ("verify", "unpack"):
-        raise ValueError("Usage: esc-remote-unzip.py verify|unpack")
+    if len(sys.argv) != 2 or sys.argv[1] not in ("verify", "manifest", "unpack"):
+        raise ValueError("Usage: template-remote-unzip.py verify|manifest|unpack")
     mode = sys.argv[1]
     config = os.environ["ENV_FILE"]
     client_url = env_value(config, "WC_URL_CLIENT")
@@ -131,6 +137,74 @@ def main():
         if result.get("host") != client_host or result.get("target") != ftp_target:
             raise RuntimeError("Remote WordPress unzip target does not match the verified FTP target")
         print("SIGNED_UNZIP_PREFLIGHT_OK: %s" % ftp_target)
+        return
+
+    if mode == "manifest":
+        # Existing v2 PHP may not yet support manifest. Only this one expected
+        # compatibility response causes FULL ZIP fallback (never auth failure).
+        try:
+            result = signed_post(backend + "/template-unzip.php", token,
+                                 {"action": "image_manifest", **common}, 30)
+        except RuntimeError as error:
+            detail = str(error)
+            if ("HTTP 400" in detail and "Invalid archive checksum" in detail) or (
+                    "HTTP 409" in detail and "Image manifest unavailable" in detail):
+                print("TEMPLATE_IMAGE_DELTA=FULL_FALLBACK (remote manifest unavailable)")
+                return
+            raise
+        if result.get("host") != client_host or result.get("target") != ftp_target:
+            raise RuntimeError("Signed image inventory came from unexpected frontend")
+        images = result.get("images")
+        if not isinstance(images, dict) or len(images) > 5000:
+            raise RuntimeError("Invalid signed image inventory")
+        total = 0
+        for name, meta in images.items():
+            if not isinstance(name, str) or len(name) > 240:
+                raise RuntimeError("Invalid image name")
+            pieces = name.split("/")
+            if (not all(re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9_.-]*", p)
+                        and p not in (".", "..") for p in pieces) or
+                    not isinstance(meta, dict) or type(meta.get("size")) is not int or
+                    meta["size"] < 0 or meta["size"] > 26214400 or
+                    not isinstance(meta.get("sha256"), str) or
+                    not re.fullmatch("[0-9a-f]{64}", meta["sha256"])):
+                raise RuntimeError("Invalid signed image inventory item")
+            total += meta["size"]
+            if total > 524288000:
+                raise RuntimeError("Signed image inventory too large")
+        inventory = {"images": images}
+        # The signed PHP inventory may optionally include client-only HTML,
+        # CSS, JS and public JSON. Older PHP has no 'static' key: full ZIP fallback.
+        static = result.get("static")
+        if static is not None:
+            if not isinstance(static, dict) or len(static) > 5000:
+                raise RuntimeError("Invalid signed static inventory")
+            static_bytes = 0
+            for name, meta in static.items():
+                if (not isinstance(name, str) or len(name) > 240 or name == "index.html"
+                    or name.startswith("images/")
+                    or not re.search(r"\.(?:html|css|js|json)$", name)):
+                    raise RuntimeError("Invalid signed static asset name")
+                pieces = name.split("/")
+                if (not all(re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9_.-]*", p)
+                            and p not in (".", "..") for p in pieces)
+                    or not isinstance(meta, dict) or type(meta.get("size")) is not int
+                    or meta["size"] < 0 or meta["size"] > 26214400
+                    or not isinstance(meta.get("sha256"), str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", meta["sha256"])):
+                    raise RuntimeError("Invalid signed static asset digest")
+                static_bytes += meta["size"]
+                if static_bytes > 104857600:
+                    raise RuntimeError("Signed static inventory too large")
+            inventory["static"] = static
+            print("TEMPLATE_STATIC_DELTA_REMOTE_FILES=%d remote_bytes=%d" %
+                  (len(static), static_bytes))
+        target_file = Path("source/.template-remote-image-manifest.json")
+        if not target_file.parent.is_dir():
+            raise RuntimeError("Expected checked-out production source directory")
+        target_file.write_text(json.dumps(inventory, sort_keys=True),
+                               encoding="utf-8")
+        print("TEMPLATE_IMAGE_DELTA_REMOTE_IMAGES=%d remote_bytes=%d" % (len(images), total))
         return
 
     archive = Path(os.environ.get("ZIP_PATH", "source/upload/template-astro.zip"))

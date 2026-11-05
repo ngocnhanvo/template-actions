@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 
 SOURCE = Path("source-php")
 FILES = (
+    "template-image-delta.php",
     "template-unzip.php",
     "template-unzip-v2.ready",
     "wp-content/mu-plugins/esc-github-trigger-config.php",

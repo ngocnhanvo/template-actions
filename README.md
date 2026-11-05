@@ -24,6 +24,23 @@ WordPress must configure `VCS_GH_OWNER` and `VCS_GH_REPO` in its own
 The unzip endpoint retains HMAC authentication, timestamp validation, ZIP SHA-256
 verification and destination path checks.
 
+## Incremental FTPS transport
+
+The workflow reads the signed PHP inventory before packaging. Unchanged public
+images and eligible client HTML/CSS/JS/JSON are omitted only when both their size
+and SHA-256 match. The PHP activator restores and verifies them in staging before
+the existing activation/rollback. Server output, the new client index and SEO
+metadata retain their existing release rules.
+
+Older PHP without inventory support falls back to the full ZIP. Authentication,
+destination and checksum errors still fail closed. Deploy `template-image-delta.php`
+before `template-unzip.php` using the manual PHP release before expecting delta
+savings. The resumable FTPS client uses a 4 MiB socket buffer; lftp preparation
+overlaps Astro build and must succeed before upload.
+
+`template-deploy-contract-ci.yml` runs offline Python/PHP contracts and a real ZIP
+reconstruction test. It never uploads FTP files or builds Astro.
+
 ## Separate operations
 
 - `template-shared-playwright.yml`: manual, read-only `smoke`,
