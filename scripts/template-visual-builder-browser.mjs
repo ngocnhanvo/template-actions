@@ -142,7 +142,74 @@ try {
     checks.push({ viewport: name, header: 'PASS', footer: 'PASS', controls: 'PASS', readonly: 'PASS', navigation: 'BLOCKED' });
     await context.close();
   }
+  // Run the shipped WordPress TinyMCE and both actual native preview builders.
+  // This editor is entirely synthetic; no admin login, DB save or external request.
+  const phpRequire = createRequire(path.join(php, 'tests/esc-table-preview.test.cjs'));
+  const builders = phpRequire(path.join(php, 'tests/esc-table-preview.test.cjs')).loadPreviewBuilders();
+  const themeRoot = path.join(php, 'wp-content/themes/vibe-code-theme');
+  const editorSource = await readFile(path.join(themeRoot, 'inc/tablepress/html.php'), 'utf8');
+  const cssBlock = editorSource.match(/\$css = array\(([\s\S]*?)\n    \);/);
+  assert(cssBlock, 'Native editor preview styles are missing');
+  const editorCSS = [...cssBlock[1].matchAll(/'([^'\r\n]*)'/g)].map(match => match[1]).join('');
+  const mceRoot = path.join(php, 'wp-includes/js/tinymce');
+  const editorScripts = await Promise.all([
+    readFile(path.join(mceRoot, 'tinymce.min.js'), 'utf8'),
+    readFile(path.join(mceRoot, 'themes/modern/theme.min.js'), 'utf8'),
+    readFile(path.join(mceRoot, 'plugins/noneditable/plugin.min.js'), 'utf8'),
+  ]);
+  const stylesheet = await readFile(path.join(themeRoot, 'mce.css'), 'utf8');
+  for (const [name, viewport] of Object.entries({ desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } })) {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    const errors = [], unexpected = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await context.route('**/*', async route => {
+      const url = new URL(route.request().url());
+      if (url.origin === 'https://editor.example.test' && url.pathname === '/wp-json/api/image/tablepress') {
+        await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#dbeafe"/><text x="20" y="100" fill="#1e3a8a">ESC Table preview</text></svg>' });
+      } else { unexpected.push(url.href); await route.abort(); }
+    });
+    await page.setContent('<!doctype html><html><head><base href="https://editor.example.test/"></head><body><h1>ESC Table editor fixture</h1><textarea id="native-content"></textarea></body></html>');
+    for (const content of editorScripts) await page.addScriptTag({ content });
+    await page.evaluate(css => {
+      window.tinymce.init({ selector: '#native-content', theme: 'modern', plugins: 'noneditable',
+        skin: false, content_css: false, content_style: css, menubar: false, toolbar: false,
+        statusbar: false, width: 300, height: 500,
+        init_instance_callback: () => { window.__nativeReady = true; } });
+    }, stylesheet + editorCSS);
+    await page.waitForFunction(() => window.__nativeReady === true, undefined, { timeout: 10000 });
+    for (const [action, build] of Object.entries(builders)) {
+      const html = build('section_17', 300, 200);
+      await page.evaluate(html => window.tinymce.get('native-content').setContent(html), html);
+      await page.waitForFunction(() => {
+        const image = window.tinymce.get('native-content').getBody().querySelector('.tablepress-attached-image');
+        return image?.complete && image.naturalWidth === 300;
+      }, undefined, { timeout: 10000 });
+      const result = await page.evaluate(() => {
+        const editor = window.tinymce.get('native-content');
+        const image = editor.getBody().querySelector('.tablepress-attached-image');
+        const box = image.getBoundingClientRect();
+        const saved = editor.getContent();
+        editor.setContent(saved);
+        return { saved, reloaded: editor.getContent(), width: box.width, height: box.height,
+          wrappers: editor.getBody().querySelectorAll('.tablepress-preview-wrap').length };
+      });
+      assert(!/\s(?:style|data-mce-style)\s*=/i.test(result.saved), action + ': serialized preview contains styles');
+      assert(!/\s(?:style|data-mce-style)\s*=/i.test(result.reloaded), action + ': preview styles return after reload');
+      assert.equal(result.wrappers, 1);
+      assert.equal((result.saved.match(/\[table id=section_17 \/\]/g) || []).length, 1);
+      assert(result.width > 0 && result.width <= 300 && Math.abs(result.width / result.height - 1.5) < 0.02,
+        action + ': editor preview must fit its container without distorting the 300/200 image');
+    }
+    await page.screenshot({ path: path.join(output, name + '-native-insertcode.png'), fullPage: true });
+    assert.deepEqual(errors, []);
+    assert.deepEqual(unexpected, []);
+    assert.equal(context.pages().length, 1);
+    checks.push({ viewport: name, nativeInsertCode: 'PASS', nativeReplace: 'PASS', editor: 'WORDPRESS_TINYMCE', serializedStyles: 'NONE', sizing: 'PASS' });
+    await context.close();
+  }
   await writeFile(path.join(output, 'result.json'), JSON.stringify({ sources, checks, scope: 'OFFLINE_BROWSER_CONTRACT; no production deployment' }, null, 2));
+  console.log('TEMPLATE_ESC_TABLE_INSERTCODE=PASS; native_tinymce=true; viewports=desktop,mobile; no_cms_write=true');
   console.log('TEMPLATE_VISUAL_BUILDER_BROWSER=PASS; viewports=desktop,mobile; no_build=true; no_ftp=true; no_cms_write=true');
   console.log('SOURCE_SHAS=' + JSON.stringify(sources));
 } finally {
