@@ -168,6 +168,11 @@ try {
       const url = new URL(route.request().url());
       if (url.href === 'https://editor.example.test/' && route.request().resourceType() === 'document') {
         await route.fulfill({ contentType: 'text/html', body: nativeFixture });
+      } else if (url.origin === 'https://editor.example.test' &&
+        /^\/tinymce-skin\/(?:skin\.min\.css|content\.min\.css|fonts\/(?:tinymce|tinymce-small)\.(?:woff|ttf|eot|svg))$/.test(url.pathname)) {
+        const relative = url.pathname.slice('/tinymce-skin/'.length);
+        await route.fulfill({ contentType: relative.endsWith('.css') ? 'text/css' : 'application/octet-stream',
+          body: await readFile(path.join(mceRoot, 'skins/lightgray', relative)) });
       } else if (url.origin === 'https://editor.example.test' && url.pathname === '/wp-json/api/image/tablepress') {
         await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#dbeafe"/><text x="20" y="100" fill="#1e3a8a">ESC Table preview</text></svg>' });
       } else { unexpected.push(url.href); await route.abort(); }
@@ -179,11 +184,13 @@ try {
     assert.equal(await page.evaluate(() => typeof window.tinymce?.init), 'function');
     await page.evaluate(css => {
       window.tinymce.init({ selector: '#native-content', theme: 'modern', plugins: 'noneditable',
-        skin: false, content_css: false, content_style: css, menubar: false, toolbar: false,
+        skin: 'lightgray', skin_url: 'https://editor.example.test/tinymce-skin',
+        content_css: false, content_style: css, menubar: false, toolbar: false,
         statusbar: false, width: 300, height: 500,
         init_instance_callback: () => { window.__nativeReady = true; } });
     }, stylesheet + editorCSS);
     await page.waitForFunction(() => window.__nativeReady === true, undefined, { timeout: 10000 });
+    await page.locator('#native-content_ifr').waitFor({ state: 'visible', timeout: 10000 });
     for (const [action, build] of Object.entries(builders)) {
       const html = build('section_17', 300, 200);
       await page.evaluate(html => window.tinymce.get('native-content').setContent(html), html);
@@ -207,6 +214,8 @@ try {
       assert(result.width > 0 && result.width <= 300 && Math.abs(result.width / result.height - 1.5) < 0.02,
         action + ': editor preview must fit its container without distorting the 300/200 image');
     }
+    await page.frameLocator('#native-content_ifr').locator('.tablepress-attached-image').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForFunction(() => window.tinymce.get('native-content').getBody().querySelector('img')?.complete, undefined, { timeout: 10000 });
     await page.screenshot({ path: path.join(output, name + '-native-insertcode.png'), fullPage: true });
     assert.deepEqual(errors, []);
     assert.deepEqual(unexpected, []);
