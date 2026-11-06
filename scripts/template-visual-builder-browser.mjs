@@ -158,6 +158,7 @@ try {
     readFile(path.join(mceRoot, 'plugins/noneditable/plugin.min.js'), 'utf8'),
   ]);
   const stylesheet = await readFile(path.join(themeRoot, 'mce.css'), 'utf8');
+  const nativeFixture = '<!doctype html><html><head><meta charset="utf-8"><link rel="icon" href="data:,"></head><body><h1>ESC Table editor fixture</h1><textarea id="native-content"></textarea></body></html>';
   for (const [name, viewport] of Object.entries({ desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } })) {
     const context = await browser.newContext({ viewport });
     const page = await context.newPage();
@@ -165,12 +166,17 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
-      if (url.origin === 'https://editor.example.test' && url.pathname === '/wp-json/api/image/tablepress') {
+      if (url.href === 'https://editor.example.test/' && route.request().resourceType() === 'document') {
+        await route.fulfill({ contentType: 'text/html', body: nativeFixture });
+      } else if (url.origin === 'https://editor.example.test' && url.pathname === '/wp-json/api/image/tablepress') {
         await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#dbeafe"/><text x="20" y="100" fill="#1e3a8a">ESC Table preview</text></svg>' });
       } else { unexpected.push(url.href); await route.abort(); }
     });
-    await page.setContent('<!doctype html><html><head><base href="https://editor.example.test/"></head><body><h1>ESC Table editor fixture</h1><textarea id="native-content"></textarea></body></html>');
+    // TinyMCE 4's URI bootstrap cannot initialize on an opaque about:blank URL.
+    await page.goto('https://editor.example.test/');
     for (const content of editorScripts) await page.addScriptTag({ content });
+    assert.deepEqual(errors, [], 'WordPress TinyMCE bootstrap: ' + errors.join('; '));
+    assert.equal(await page.evaluate(() => typeof window.tinymce?.init), 'function');
     await page.evaluate(css => {
       window.tinymce.init({ selector: '#native-content', theme: 'modern', plugins: 'noneditable',
         skin: false, content_css: false, content_style: css, menubar: false, toolbar: false,
