@@ -41,6 +41,14 @@ overlaps Astro build and must succeed before upload.
 `template-deploy-contract-ci.yml` runs offline Python/PHP contracts and a real ZIP
 reconstruction test. It never uploads FTP files or builds Astro.
 
+## CMS automation write scope
+
+For any future project-specific workflow that writes WordPress/CMS, keep the write set smaller than the QA set: only records that actually changed may be saved. Do not touch unrelated Pages/Posts to manufacture build logs or pending counts, and do not create draft/test records merely to obtain a nonce or trigger a build.
+
+If a temporary CMS record is genuinely required, tag it with the project plus GitHub run ID, record its ID immediately, clean it in a `finally` path even when QA/build fails, and verify that zero tagged records remain. A cleanup failure is a failed job, not a PASS. Prefer existing published data or local fixtures whenever possible.
+
+Source-gate requests should also be built from the exact fetched target HEAD and preflighted before `request.ready` is created, so malformed patches do not consume a runner merely to fail `git apply --check`.
+
 ## Separate operations
 
 - `template-shared-playwright.yml`: manual, read-only `smoke`,
