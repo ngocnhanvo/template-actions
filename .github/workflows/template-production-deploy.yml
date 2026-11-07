@@ -97,27 +97,14 @@ jobs:
           set -euo pipefail
           python3 -m py_compile actions-hub/scripts/template-remote-unzip.py
           python3 actions-hub/scripts/template-remote-unzip.py verify
-      - name: Read saved sitemap revision and signed image inventory concurrently (READ ONLY)
+      - name: Read signed reusable-asset inventory (READ ONLY)
         shell: bash
         run: |
           set -euo pipefail
           set +x
-          python3 -m py_compile actions-hub/scripts/template-published-sitemap-revision.py
-          # These two reads are independent. BOTH results must succeed before
-          # dependencies, build or deployment proceed. Signed preflight above
-          # has already validated the PHP server and deploy destination.
-          python3 actions-hub/scripts/template-published-sitemap-revision.py &
-          sitemap_pid=$!
-          python3 actions-hub/scripts/template-remote-unzip.py manifest &
-          image_pid=$!
-          sitemap_status=0
-          image_status=0
-          wait "$sitemap_pid" || sitemap_status=$?
-          wait "$image_pid" || image_status=$?
-          if (( sitemap_status != 0 || image_status != 0 )); then
-            echo "::error::TEMPLATE signed read-only preflight failed"
-            exit 1
-          fi
+          # Sitemap is generated from WordPress source during the Astro build.
+          # Never read the currently deployed sitemap or its revision here.
+          python3 actions-hub/scripts/template-remote-unzip.py manifest
       # GitHub-hosted runners are ephemeral: reuse downloaded packages
       # keyed by the Astro production lockfile. Never cache node_modules or .env.
       - name: Set up pnpm 9 (without installing project dependencies)
@@ -194,13 +181,10 @@ jobs:
           test -s deploy/server/entry.mjs
           test ! -e deploy/index.html
           test ! -e deploy/_astro
-          # Apache serves these three public metadata files from document-root.
-          # The Astro SSR runtime serves app assets from client/, while old root
-          # copies remain unchanged unless explicitly included in the archive.
-          # Whitelist ONLY the public, content-checked metadata; never flatten
-          # HTML, _astro assets, application data or private runtime files.
+          # Apache serves these public metadata files from document-root.
+          # Astro has already converted WordPress source data to the frontend
+          # origin during this build, so package the generated files every time.
           python3 - <<'PY'
-          import json
           import os
           from pathlib import Path
           from urllib.parse import urlsplit
@@ -208,79 +192,47 @@ jobs:
 
           root = Path("deploy")
           origin = os.environ['TEMPLATE_CLIENT_ORIGIN']
-          state_file = root / "client" / ".template-sitemap-deploy-state.json"
-          if not state_file.is_file():
-              raise RuntimeError("Missing signed-build sitemap Save revision decision")
-          state = json.loads(state_file.read_text())
-          if state.get("origin") != origin or not isinstance(state.get("changed"), bool):
-              raise RuntimeError("Unexpected sitemap deploy decision")
-          rev = state.get("revision")
-          import re
-          if not isinstance(rev, str) or re.fullmatch(r"(?:legacy|[a-f0-9-]{36})", rev) is None:
-              raise RuntimeError("Unexpected sitemap Save revision")
-          # Workflow-local metadata (not uploaded publicly except safe revision
-          # token in the existing template-staging-build.json).
-          Path(".template-sitemap-package-state.json").write_text(json.dumps(state))
-          state_file.unlink()
           published = {}
-          for name in ("llms.txt", "robots.txt"):
+          for name in ("sitemap.xml", "robots.txt", "llms.txt"):
               compiled = root / "client" / name
               if not compiled.is_file():
-                  raise RuntimeError("Missing WordPress SEO metadata: " + name)
+                  raise RuntimeError("Missing Astro SEO output: " + name)
               raw = compiled.read_bytes()
               if not raw:
-                  raise RuntimeError("Invalid compiled SEO metadata: " + name)
+                  raise RuntimeError("Empty Astro SEO output: " + name)
               published[name] = raw
 
-          if state["changed"]:
-              compiled = root / "client" / "sitemap.xml"
-              if not compiled.is_file():
-                  raise RuntimeError("Saved sitemap XML missing from build")
-              raw = compiled.read_bytes()
-              try:
-                  xmlroot = ET.fromstring(raw)
-              except ET.ParseError as e:
-                  raise RuntimeError("Invalid WordPress XML: " + str(e))
-              ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
-              if xmlroot.tag != ns + "urlset":
-                  raise RuntimeError("Invalid sitemap namespace")
-              urls = []
-              for item in xmlroot.findall(ns + "url"):
-                  loc = item.find(ns + "loc")
-                  if loc is None or not loc.text:
-                      raise RuntimeError("Missing sitemap loc")
-                  value = loc.text.strip()
-                  p = urlsplit(value)
-                  if p.scheme != "https" or p.netloc != os.environ['TEMPLATE_CLIENT_HOST'] or p.query or p.fragment:
-                      raise RuntimeError("Sitemap loc uses unsafe origin")
-                  urls.append(value)
-              if not urls or origin + "/" not in urls or len(urls) != len(set(urls)):
-                  raise RuntimeError("Sitemap homepage missing/duplicate")
-              published["sitemap.xml"] = raw
-              print("SITEMAP SAVE DETECTED: XML included in deploy")
-          else:
-              # The signed PHP activator copies the unchanged public file
-              # locally into the new client directory. Do not send XML.
-              (root / "client" / "sitemap.xml").unlink(missing_ok=True)
-              if (root / "sitemap.xml").exists():
-                  raise RuntimeError("Unchanged sitemap must not be at ZIP root")
-              print("SITEMAP UNCHANGED: XML excluded from deploy; hosting retains prior XML")
+          try:
+              xmlroot = ET.fromstring(published["sitemap.xml"])
+          except ET.ParseError as e:
+              raise RuntimeError("Invalid generated sitemap XML: " + str(e))
+          ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+          if xmlroot.tag != ns + "urlset":
+              raise RuntimeError("Invalid sitemap namespace")
+          urls = []
+          for item in xmlroot.findall(ns + "url"):
+              loc = item.find(ns + "loc")
+              if loc is None or not loc.text:
+                  raise RuntimeError("Missing sitemap loc")
+              value = loc.text.strip()
+              p = urlsplit(value)
+              if p.scheme != "https" or p.netloc != os.environ['TEMPLATE_CLIENT_HOST'] or p.query or p.fragment:
+                  raise RuntimeError("Sitemap loc uses unsafe origin")
+              urls.append(value)
+          if not urls or origin + "/" not in urls or len(urls) != len(set(urls)):
+              raise RuntimeError("Sitemap homepage missing/duplicate")
 
-          # WordPress already validated and saved robots/llms. Preserve the
-          # administrator's public settings; no staging or one-page policy.
           for name, data in published.items():
               (root / name).write_bytes(data)
-          print("PASS: production SEO root files from WP; update sitemap=" + str(state["changed"]))
+          print("PASS: Astro SEO files generated from WordPress source and packaged for production")
           PY
           echo "$(date +%s)" > deploy/pm2-reload.txt
           python3 - <<'PY'
           import json,os
           sha=os.environ['TEMPLATE_DEPLOY_COMMIT']
-          state=json.load(open('.template-sitemap-package-state.json',encoding='utf8'))
           with open('deploy/template-staging-build.json','w',encoding='utf8') as handle:
               json.dump({
                   'branch':'master','commit':sha,'target':os.environ['TEMPLATE_CLIENT_HOST'],
-                  'sitemap_revision':state['revision'],
               },handle)
           PY
           test ! -e deploy/.env
@@ -306,18 +258,11 @@ jobs:
               # No flattened client output must reappear at root.
               if any(name in names for name in ('index.html','_astro/')):
                   raise RuntimeError('Duplicate application assets outside client/ are forbidden')
-              state=json.load(open('.template-sitemap-package-state.json',encoding='utf8'))
-              for static in ('llms.txt','robots.txt'):
+              for static in ('sitemap.xml','robots.txt','llms.txt'):
                   if static not in names or ('client/' + static) not in names:
-                      raise RuntimeError('Missing WordPress metadata: ' + static)
+                      raise RuntimeError('Missing generated SEO file: ' + static)
                   if z.read(static) != z.read('client/' + static):
-                      raise RuntimeError('Metadata copies differ: ' + static)
-              present='sitemap.xml' in names and 'client/sitemap.xml' in names
-              absent='sitemap.xml' not in names and 'client/sitemap.xml' not in names
-              if state['changed'] and (not present or z.read('sitemap.xml')!=z.read('client/sitemap.xml')):
-                  raise RuntimeError('Saved sitemap missing or mismatched in archive')
-              if not state['changed'] and not absent:
-                  raise RuntimeError('Unchanged sitemap XML must be excluded from archive')
+                      raise RuntimeError('SEO root/client copies differ: ' + static)
               if 'template-image-delta.json' in names:
                   image_delta=json.loads(z.read('template-image-delta.json'))
                   if image_delta.get('format') != 1 or not isinstance(image_delta.get('reuse'),list) or not isinstance(image_delta.get('files'),dict):
@@ -336,8 +281,10 @@ jobs:
                           'client/'+name in names or name not in static_delta['files']):
                           raise RuntimeError('Reused static file was improperly uploaded')
               meta=json.loads(z.read('template-staging-build.json'))
-              if meta.get('branch')!='master' or meta.get('commit')!=os.environ['TEMPLATE_DEPLOY_COMMIT'] or meta.get('sitemap_revision')!=state['revision']:
-                  raise RuntimeError('Archive revision marker mismatch')
+              if (meta.get('branch')!='master'
+                  or meta.get('commit')!=os.environ['TEMPLATE_DEPLOY_COMMIT']
+                  or meta.get('target')!=os.environ['TEMPLATE_CLIENT_HOST']):
+                  raise RuntimeError('Archive provenance marker mismatch')
               for required in ('server/entry.mjs','client/index.html','template-staging-build.json'):
                   if required not in names:raise RuntimeError('Missing staged bundle file: '+required)
           print('PASS: ZIP contains dev server/client and provenance, no private environment file.')
