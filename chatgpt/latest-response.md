@@ -2,22 +2,27 @@
 
 - Date: 2026-11-08 (Asia/Ho_Chi_Minh)
 - Project: Template (`ngocnhanvo/template-astro`, `ngocnhanvo/template-php`)
-- Scope: reusable Visual Builder improvements from PTSCPS
-- Status: SOURCE_COMMITTED, PRODUCTION_NOT_DEPLOYED
+- Scope: Aqua Visual Builder reusable Product management and nested ESC Table child tables inside parent cells
+- Status: SOURCE_COMMITTED, SOURCE_GATE_TESTS_PASS, PRODUCTION_NOT_DEPLOYED
 
-## Verified source commits
+## Verified Template source commits
 
-1. `template-astro/master` `03ec40b10213e647fef6afe932d67c4bd2103cfc`: retained ESC Table `sourceRow` and `sourceType` through API expansion; transmitted rendered table version and section/description coordinates.
-2. `template-php/master` `70982601448605c1f918b85ca9267142802c1204`: exact cell coordinate selection, verified native row, optimistic table version checks, and safe CTA link editors. The source gate ran PHP validation before committing.
-3. `template-astro/master` `757424a16e822f8c032ff96f96230baff766d6af`: restored `home_02` first-row source selection and bound `home_01` gallery heading to section-title metadata.
+- `template-php/master` `86c9db4252dacaef485f747da237c0f95df4f538` — WooCommerce Product IDs managed only in ESC Table; attributes remain readonly.
+- `template-php/master` `27bd8fe7adc08bcc8c5d7aafd2501a0b5f786eba` — Product picker, add/delete/reorder controls.
+- `template-php/master` `06e346908ec40eb67a5a919243b7d13bb3072ffc` — remove hardcoded Sale currency fallback.
+- `template-astro/master` `c7c3f87fe24cf1c196d26ea4da14baa80f07eea9` — safe Preview interaction guard and Product reference adapters.
+- `template-php/master` `ccccada975b2e64945ce58582ec54d715ebf97cc` — bounded Page-owned nested shortcode-* ESC Table discovery and permission; source gate run 42491346637 PASS.
+- `template-php/master` `024a9104cad189571025324c65087636191c88c7` — direct red/blue Product visual picking; fallback ID list only if Preview cannot match; source gate run 42491664580 PASS.
+- `template-astro/master` `c67a593b99dff312e4bcfbff202871d0886dd191` — authenticated nested Page manifest data-only blocks; direct nested Product selection, add/delete/reorder, source-row tags; source gate run 42492142623 PASS.
+- `template-astro/master` `4bf76861ef31a9108b5d1936b8cca38b482a22d7` — fix canonical sourceRow after insertion and notify nested track for pagination; five new nested Product jsdom regression tests; source gate run 42493054136 PASS.
 
-## Boundaries and follow-up
+## Constraints and next steps
 
-- PTSCPS was read-only reference; no PTSCPS repository or CMS writes.
-- Existing Template generic ESC API (`meta.api`) reused; do not copy PTSCPS-specific `home_05` news component, business content, CSS, static table mappings or locale allowlists.
-- `normal` mode: no PHP FTP upload and no Astro production build were triggered. Source commits are not deployed QA.
-- Production Visual Builder has not been tested against a deployed Template instance. For deployment use a separately authorized production release and Playwright Save/reload QA.
-- Older request `20261108-template-api-config-02` was submitted in another conversation, but no commit for it was observed in `template-php/master` at this checkpoint. Avoid treating it as complete or resubmitting blindly.
+- Aqua reference repositories were read-only; no client content, CSS or Home_03 layout copied. Actual project components displaying a child Product ESC Table must render the generic `data-esc-source-table`, `data-esc-builder-product-track`, `data-esc-builder-product-id`, and `data-esc-builder-product-card` mapping and template markup.
+- Source validation and Vitest PASS do not mean deployed website/browser QA PASS.
+- Code mode normal: no FTP PHP upload or Astro production build/deploy authorized. A separate release approval is needed before production Visual Builder Chromium/Playwright, save/readback/reload, mouse/touch and rollback QA.
+- Earlier PTSCPS commits 03ec40b, 7098260, 757424a remain intact.
 
 **Chế độ code:** normal
 **Cổng ghi source:** source-commit-actions (chưa có giá trị)
+**Trạng thái:** PARTIAL — production deployment/browser acceptance pending
