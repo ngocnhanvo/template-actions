@@ -18,6 +18,8 @@
 - `template-php/master` `bf7d7b76f6df822359553fb6141a2684e0255278` — standalone PHP nested Page source graph regression: child/grandchild, cycle, isolation, unknown table, depth and 48-table cap; source gate run 42497357672 PASS.
 - `template-php/master` `10a10ded0956837ce2d1ddb11b8d86f606eec5db` — keep preselected Product ID on entering visual sort and revalidate against authoritative WordPress rows; source gate run 42497631449 PASS.
 - `template-astro/master` `bac0f9476c768c6ce2f8620a99120c43c20f75e0` — explicitly filtered Product tracks can reconcile a subset of ID references without weakening complete-grid validation; 3 Vitest cases; source gate run 42498714261 PASS.
+- `template-astro/master` `aeee64c5e6f266b3475af3fa55ffd24828ed9da4` — refuse direct picking when selected Product card is filtered/hidden and reject malformed Product ID mappings; 2 jsdom tests; source gate run 42499865927 PASS.
+- `template-astro/master` `f117b819880488432471eee3179c16e19a29172f` — use authoritative WooCommerce price, do not render fictional discount percentages on free/full-priced Product cards; jsdom regression; source gate run 42500089517 PASS.
 
 ## Constraints and next steps
 
