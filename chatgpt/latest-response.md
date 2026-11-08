@@ -21,6 +21,7 @@
 - `template-astro/master` `aeee64c5e6f266b3475af3fa55ffd24828ed9da4` — refuse direct picking when selected Product card is filtered/hidden and reject malformed Product ID mappings; 2 jsdom tests; source gate run 42499865927 PASS.
 - `template-astro/master` `f117b819880488432471eee3179c16e19a29172f` — use authoritative WooCommerce price, do not render fictional discount percentages on free/full-priced Product cards; jsdom regression; source gate run 42500089517 PASS.
 - `template-astro/master` `f262772074ce37c4e5321dd026e8c077dc99f70a` — sale-only Product preview rejects non-discounted additions; delete preview now validates Product ID + canonical row before DOM mutation; three new jsdom regression tests; source gate run 42501371079 PASS.
+- `template-astro/master` `d404c6ebe1f9f61b6f6eaae0c2f9c6f9ae2f8df5` — guard native Product inserts against missing/duplicated old cards in full grids while allowing declared filtered subsets; three jsdom regressions; source gate run 42502158105 PASS.
 
 ## Constraints and next steps
 
