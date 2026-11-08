@@ -17,10 +17,12 @@
 - `template-astro/master` `4bf76861ef31a9108b5d1936b8cca38b482a22d7` — fix canonical sourceRow after insertion and notify nested track for pagination; five new nested Product jsdom regression tests; source gate run 42493054136 PASS.
 - `template-php/master` `bf7d7b76f6df822359553fb6141a2684e0255278` — standalone PHP nested Page source graph regression: child/grandchild, cycle, isolation, unknown table, depth and 48-table cap; source gate run 42497357672 PASS.
 - `template-php/master` `10a10ded0956837ce2d1ddb11b8d86f606eec5db` — keep preselected Product ID on entering visual sort and revalidate against authoritative WordPress rows; source gate run 42497631449 PASS.
+- `template-astro/master` `bac0f9476c768c6ce2f8620a99120c43c20f75e0` — explicitly filtered Product tracks can reconcile a subset of ID references without weakening complete-grid validation; 3 Vitest cases; source gate run 42498714261 PASS.
 
 ## Constraints and next steps
 
 - Aqua reference repositories were read-only; no client content, CSS or Home_03 layout copied. Actual project components displaying a child Product ESC Table must render the generic `data-esc-source-table`, `data-esc-builder-product-track`, `data-esc-builder-product-id`, and `data-esc-builder-product-card` mapping and template markup.
+- Components showing a filtered subset must declare `data-esc-builder-product-partial="true"` on their Product track; complete grids remain strict by default. This is generic metadata, not an Aqua-specific style/ID.
 - Source validation and Vitest PASS do not mean deployed website/browser QA PASS.
 - Code mode normal: no FTP PHP upload or Astro production build/deploy authorized. A separate release approval is needed before production Visual Builder Chromium/Playwright, save/readback/reload, mouse/touch and rollback QA.
 - Earlier PTSCPS commits 03ec40b, 7098260, 757424a remain intact.
