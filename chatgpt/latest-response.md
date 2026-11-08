@@ -20,11 +20,13 @@
 - `template-astro/master` `bac0f9476c768c6ce2f8620a99120c43c20f75e0` — explicitly filtered Product tracks can reconcile a subset of ID references without weakening complete-grid validation; 3 Vitest cases; source gate run 42498714261 PASS.
 - `template-astro/master` `aeee64c5e6f266b3475af3fa55ffd24828ed9da4` — refuse direct picking when selected Product card is filtered/hidden and reject malformed Product ID mappings; 2 jsdom tests; source gate run 42499865927 PASS.
 - `template-astro/master` `f117b819880488432471eee3179c16e19a29172f` — use authoritative WooCommerce price, do not render fictional discount percentages on free/full-priced Product cards; jsdom regression; source gate run 42500089517 PASS.
+- `template-astro/master` `f262772074ce37c4e5321dd026e8c077dc99f70a` — sale-only Product preview rejects non-discounted additions; delete preview now validates Product ID + canonical row before DOM mutation; three new jsdom regression tests; source gate run 42501371079 PASS.
 
 ## Constraints and next steps
 
 - Aqua reference repositories were read-only; no client content, CSS or Home_03 layout copied. Actual project components displaying a child Product ESC Table must render the generic `data-esc-source-table`, `data-esc-builder-product-track`, `data-esc-builder-product-id`, and `data-esc-builder-product-card` mapping and template markup.
 - Components showing a filtered subset must declare `data-esc-builder-product-partial="true"` on their Product track; complete grids remain strict by default. This is generic metadata, not an Aqua-specific style/ID.
+- Explicit Sale-filtered tracks should set both `data-esc-builder-product-partial="true"` and `data-esc-builder-product-filter="sale"`; other partial/paginated tracks should not use the Sale filter marker. A non-sale product reference may be saved in WordPress but is not fabricated into the filtered preview (reason `not-on-sale`).
 - Source validation and Vitest PASS do not mean deployed website/browser QA PASS.
 - Code mode normal: no FTP PHP upload or Astro production build/deploy authorized. A separate release approval is needed before production Visual Builder Chromium/Playwright, save/readback/reload, mouse/touch and rollback QA.
 - Earlier PTSCPS commits 03ec40b, 7098260, 757424a remain intact.
