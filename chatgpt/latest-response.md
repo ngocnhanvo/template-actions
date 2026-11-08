@@ -15,6 +15,8 @@
 - `template-php/master` `024a9104cad189571025324c65087636191c88c7` — direct red/blue Product visual picking; fallback ID list only if Preview cannot match; source gate run 42491664580 PASS.
 - `template-astro/master` `c67a593b99dff312e4bcfbff202871d0886dd191` — authenticated nested Page manifest data-only blocks; direct nested Product selection, add/delete/reorder, source-row tags; source gate run 42492142623 PASS.
 - `template-astro/master` `4bf76861ef31a9108b5d1936b8cca38b482a22d7` — fix canonical sourceRow after insertion and notify nested track for pagination; five new nested Product jsdom regression tests; source gate run 42493054136 PASS.
+- `template-php/master` `bf7d7b76f6df822359553fb6141a2684e0255278` — standalone PHP nested Page source graph regression: child/grandchild, cycle, isolation, unknown table, depth and 48-table cap; source gate run 42497357672 PASS.
+- `template-php/master` `10a10ded0956837ce2d1ddb11b8d86f606eec5db` — keep preselected Product ID on entering visual sort and revalidate against authoritative WordPress rows; source gate run 42497631449 PASS.
 
 ## Constraints and next steps
 
