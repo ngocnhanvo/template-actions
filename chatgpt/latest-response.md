@@ -1,46 +1,32 @@
 # ChatGPT — latest response
 
-- Date: 2026-11-11 (Asia/Ho_Chi_Minh)
-- Project: Template (`ngocnhanvo/template-astro`, `ngocnhanvo/template-php`)
-- Scope: Port reusable Aqua Agent links, detached ESC labels, coupon descriptions and WooCommerce native shipping quotes to tenant-neutral Template
-- Status: SOURCE_COMMITTED, SOURCE_GATE_TESTS_PASS, PRODUCTION_NOT_DEPLOYED
+- Date: 2026-11-11, 13:50 Asia/Ho_Chi_Minh
+- Project: Template
+- Repositories: `ngocnhanvo/template-astro@master`, `ngocnhanvo/template-php@master`, `ngocnhanvo/template-actions@main`
+- Status: SOURCE_COMMITTED, SOURCE_GATE_TESTS_PASS, PRODUCTION_NOT_DEPLOYED, BROWSER_QA_NOT_TESTED
 
-## Verified Template source commits
+## Verified current checkpoint
 
-- `template-php/master` `86c9db4252dacaef485f747da237c0f95df4f538` — WooCommerce Product IDs managed only in ESC Table; attributes remain readonly.
-- `template-php/master` `27bd8fe7adc08bcc8c5d7aafd2501a0b5f786eba` — Product picker, add/delete/reorder controls.
-- `template-php/master` `06e346908ec40eb67a5a919243b7d13bb3072ffc` — remove hardcoded Sale currency fallback.
-- `template-astro/master` `c7c3f87fe24cf1c196d26ea4da14baa80f07eea9` — safe Preview interaction guard and Product reference adapters.
-- `template-php/master` `ccccada975b2e64945ce58582ec54d715ebf97cc` — bounded Page-owned nested shortcode-* ESC Table discovery and permission; source gate run 42491346637 PASS.
-- `template-php/master` `024a9104cad189571025324c65087636191c88c7` — direct red/blue Product visual picking; fallback ID list only if Preview cannot match; source gate run 42491664580 PASS.
-- `template-astro/master` `c67a593b99dff312e4bcfbff202871d0886dd191` — authenticated nested Page manifest data-only blocks; direct nested Product selection, add/delete/reorder, source-row tags; source gate run 42492142623 PASS.
-- `template-astro/master` `4bf76861ef31a9108b5d1936b8cca38b482a22d7` — fix canonical sourceRow after insertion and notify nested track for pagination; five new nested Product jsdom regression tests; source gate run 42493054136 PASS.
-- `template-php/master` `bf7d7b76f6df822359553fb6141a2684e0255278` — standalone PHP nested Page source graph regression: child/grandchild, cycle, isolation, unknown table, depth and 48-table cap; source gate run 42497357672 PASS.
-- `template-php/master` `10a10ded0956837ce2d1ddb11b8d86f606eec5db` — keep preselected Product ID on entering visual sort and revalidate against authoritative WordPress rows; source gate run 42497631449 PASS.
-- `template-astro/master` `bac0f9476c768c6ce2f8620a99120c43c20f75e0` — explicitly filtered Product tracks can reconcile a subset of ID references without weakening complete-grid validation; 3 Vitest cases; source gate run 42498714261 PASS.
-- `template-astro/master` `aeee64c5e6f266b3475af3fa55ffd24828ed9da4` — refuse direct picking when selected Product card is filtered/hidden and reject malformed Product ID mappings; 2 jsdom tests; source gate run 42499865927 PASS.
-- `template-astro/master` `f117b819880488432471eee3179c16e19a29172f` — use authoritative WooCommerce price, do not render fictional discount percentages on free/full-priced Product cards; jsdom regression; source gate run 42500089517 PASS.
-- `template-astro/master` `f262772074ce37c4e5321dd026e8c077dc99f70a` — sale-only Product preview rejects non-discounted additions; delete preview now validates Product ID + canonical row before DOM mutation; three new jsdom regression tests; source gate run 42501371079 PASS.
-- `template-astro/master` `d404c6ebe1f9f61b6f6eaae0c2f9c6f9ae2f8df5` — guard native Product inserts against missing/duplicated old cards in full grids while allowing declared filtered subsets; three jsdom regressions; source gate run 42502158105 PASS.
-- `template-php/master` `a2b2f9bac795be54f34ebea94d41f42d69eb6f15` — tenant-neutral Agent answer link evidence allowlist, prompt no slug guessing, 9 no-WordPress PHP tests; source gate run 42958087189 PASS.
-- `template-astro/master` `dd1c94411bc86d460d99c76bd47679fab2325be2` — source/version-verified detached ESC label selection, drafts, save patch and multiple representations; 6 new jsdom regressions; source gate run 42959718603 PASS.
-- `template-astro/master` `847b004d94d6400e8a663d4b7289041f103fbd6a` — display-only notes from applied native WooCommerce coupons, escaped client rendering and no raw saving_html; 4 new Vitest regressions, all 209 tests PASS; source gate run 42962563277 PASS.
-- `template-php/master` `9636a7aa77ac9e36bdfd649cf5541a071eea40b2` — generic CoCart shipping-quote callback, Woo authoritative rates/taxes, restore customer destination; standalone PHP regression; source gate 42965055999 PASS.
-- `template-astro/master` `bd38d63623ef1bbab7c7cc8213e613bbc9b9d87f` — validated SSR proxy for Woo shipping quote, reject client costs/malformed rates, 4 new Vitest tests; 213 tests PASS; source gate 42965457909 PASS.
+- `template-astro/master` `2bf77bfaa0ab57edcaf1046eecd5019d59e01b69`: added three jsdom regression tests for WooCommerce shipping selector. Central source gate run [42975105383](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/42975105383) completed SUCCESS.
+- `template-astro/master` `3173bf1adb2793887feebdfb95fd6f47df54a978`: added WooCommerce real shipping quote selection UI, address fields, ID-only forwarding, stale-response guard, submit gating, no HTML injection. Source gate run [42974630828](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/42974630828) completed SUCCESS.
+- `template-astro/master` `463f2a2db87d22248212203968b6beba931251e1`: existing concurrent fix for coupon HTML escape and prevention of duplicate browser submits. Preserved, not overwritten.
+- `template-php/master` `ec73c800e2357e42e52395f4fe4a0bbb7bbc616b`: backend Woo live shipping rate check before order creation, native shipping lines, coupon totals preservation. Earlier PHP source validation PASS.
+- Template prior Visual Builder changes preserved: nested ESC Tables, Product ID reference editing, detached ESC labels, Agent safe evidence-based links, real applied Woo coupon descriptions; see Git history and previous checkpoint revision.
+- `template-astro/github` is 26 commits behind `master`; production pipeline sources `master`. Knowledge policy since 2026-10-31 says use `master` as the Astro/PHP source branch; do not blindly merge old `github` over newer code.
 
-## Constraints and next steps
+## Remaining work and release boundary
 
-- Aqua reference repositories were read-only; no client content, CSS or Home_03 layout copied. Actual project components displaying a child Product ESC Table must render the generic `data-esc-source-table`, `data-esc-builder-product-track`, `data-esc-builder-product-id`, and `data-esc-builder-product-card` mapping and template markup.
-- Components showing a filtered subset must declare `data-esc-builder-product-partial="true"` on their Product track; complete grids remain strict by default. This is generic metadata, not an Aqua-specific style/ID.
-- Explicit Sale-filtered tracks should set both `data-esc-builder-product-partial="true"` and `data-esc-builder-product-filter="sale"`; other partial/paginated tracks should not use the Sale filter marker. A non-sale product reference may be saved in WordPress but is not fabricated into the filtered preview (reason `not-on-sale`).
-- Aqua native applied-coupon descriptions are now implemented through Template CoCart runtime; actual discounts, conditions and totals remain exclusively from WooCommerce. If WooCommerce coupon description lookup fails, cart actions must remain available.
-- Tenant-neutral native shipping quote exists in Template PHP and Astro, with package rates and tax from live WooCommerce only. Quote is read-only and does not authorize order creation.
-- Shipping method selection and order idempotency remain unported: Template checkout must recalculate/validate selected rate IDs server-side and preserve Woo tax/totals before any checkout UI shows rates. Do NOT reuse Aqua-specific account/gateway or COD-only assumptions.
-- Detached label editability requires exact live WordPress `table/physical_row/field/version`, non-dynamic ownership and matching DOM attributes. The same source can appear in multiple rendered labels; do not infer ownership from text.
-- Source validation and Vitest PASS do not mean deployed website/browser QA PASS.
-- Code mode normal: no FTP PHP upload or Astro production build/deploy authorized. A separate release approval is needed before production Visual Builder Chromium/Playwright, save/readback/reload, mouse/touch and rollback QA.
-- Earlier PTSCPS commits 03ec40b, 7098260, 757424a remain intact.
+1. Persistent server-side checkout idempotency across retries remains **NOT IMPLEMENTED**; browser-only submit lock is in place. Consider implementing with WooCommerce-authoritative idempotency and isolated tests before real-orders acceptance.
+2. Production PHP deployment and Astro production build have **NOT** been performed. `Chế độ code: normal` requires explicit user approval for PHP FTP and Astro build/deploy; source commit and Actions tests do not grant it.
+3. Real browser checkout and Visual Builder read/save/reload/touch acceptance on the deployed site remain **NOT TESTED**. Use approved release + current site marker and Playwright, no real orders by default.
+4. Do not redo the already successful central source-gate runs. Before any new patch read current HEAD and latest Actions/checkpoint to avoid collisions.
 
-**Chế độ code:** normal
-**Cổng ghi source:** source-commit-actions (chưa có giá trị)
-**Trạng thái:** PARTIAL — production deployment/browser acceptance pending
+## Nội dung phản hồi cuối dự kiến
+
+Đã kiểm tra commit/log/checkpoint và tiếp tục từ đúng phần còn thiếu: checkout vận chuyển. UI lựa chọn phương thức WooCommerce đã được commit (`3173bf1`) và bộ 3 kiểm thử hồi quy đã được commit (`2bf77bf`); cả hai source-gate runs #42974630828 và #42975105383 đều PASS. Bản sửa chống gửi đơn trùng trên trình duyệt (`463f2a2`) vẫn được giữ nguyên.
+
+Chưa deploy production hoặc nghiệm thu trên trình duyệt. Phần còn mở là idempotency thực sự ở backend, QA tích hợp, và phát hành theo quyền `normal` (phải được chủ dự án phê duyệt riêng cho FTP/build). Không chạy lại các bước đã PASS.
+
+Chế độ code: normal
+Cổng ghi source: source-commit-actions (chưa có giá trị)
+Trạng thái: PARTIAL — chưa hoàn tất
