@@ -2,7 +2,7 @@
 
 - Date: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Project: Template (`ngocnhanvo/template-astro`, `ngocnhanvo/template-php`)
-- Scope: Port reusable Aqua Agent links, detached ESC label editing and native WooCommerce coupon descriptions to tenant-neutral Template
+- Scope: Port reusable Aqua Agent links, detached ESC labels, coupon descriptions and WooCommerce native shipping quotes to tenant-neutral Template
 - Status: SOURCE_COMMITTED, SOURCE_GATE_TESTS_PASS, PRODUCTION_NOT_DEPLOYED
 
 ## Verified Template source commits
@@ -25,6 +25,8 @@
 - `template-php/master` `a2b2f9bac795be54f34ebea94d41f42d69eb6f15` — tenant-neutral Agent answer link evidence allowlist, prompt no slug guessing, 9 no-WordPress PHP tests; source gate run 42958087189 PASS.
 - `template-astro/master` `dd1c94411bc86d460d99c76bd47679fab2325be2` — source/version-verified detached ESC label selection, drafts, save patch and multiple representations; 6 new jsdom regressions; source gate run 42959718603 PASS.
 - `template-astro/master` `847b004d94d6400e8a663d4b7289041f103fbd6a` — display-only notes from applied native WooCommerce coupons, escaped client rendering and no raw saving_html; 4 new Vitest regressions, all 209 tests PASS; source gate run 42962563277 PASS.
+- `template-php/master` `9636a7aa77ac9e36bdfd649cf5541a071eea40b2` — generic CoCart shipping-quote callback, Woo authoritative rates/taxes, restore customer destination; standalone PHP regression; source gate 42965055999 PASS.
+- `template-astro/master` `bd38d63623ef1bbab7c7cc8213e613bbc9b9d87f` — validated SSR proxy for Woo shipping quote, reject client costs/malformed rates, 4 new Vitest tests; 213 tests PASS; source gate 42965457909 PASS.
 
 ## Constraints and next steps
 
@@ -32,7 +34,8 @@
 - Components showing a filtered subset must declare `data-esc-builder-product-partial="true"` on their Product track; complete grids remain strict by default. This is generic metadata, not an Aqua-specific style/ID.
 - Explicit Sale-filtered tracks should set both `data-esc-builder-product-partial="true"` and `data-esc-builder-product-filter="sale"`; other partial/paginated tracks should not use the Sale filter marker. A non-sale product reference may be saved in WordPress but is not fabricated into the filtered preview (reason `not-on-sale`).
 - Aqua native applied-coupon descriptions are now implemented through Template CoCart runtime; actual discounts, conditions and totals remain exclusively from WooCommerce. If WooCommerce coupon description lookup fails, cart actions must remain available.
-- Aqua shipping quote / checkout implementations were reviewed but NOT ported: they rely on the Aqua-specific shipping callback, order idempotency and authenticated-cart plumbing. A future tenant-neutral adapter must preserve WooCommerce server-authoritative rate IDs, costs and tax before integration.
+- Tenant-neutral native shipping quote exists in Template PHP and Astro, with package rates and tax from live WooCommerce only. Quote is read-only and does not authorize order creation.
+- Shipping method selection and order idempotency remain unported: Template checkout must recalculate/validate selected rate IDs server-side and preserve Woo tax/totals before any checkout UI shows rates. Do NOT reuse Aqua-specific account/gateway or COD-only assumptions.
 - Detached label editability requires exact live WordPress `table/physical_row/field/version`, non-dynamic ownership and matching DOM attributes. The same source can appear in multiple rendered labels; do not infer ownership from text.
 - Source validation and Vitest PASS do not mean deployed website/browser QA PASS.
 - Code mode normal: no FTP PHP upload or Astro production build/deploy authorized. A separate release approval is needed before production Visual Builder Chromium/Playwright, save/readback/reload, mouse/touch and rollback QA.
