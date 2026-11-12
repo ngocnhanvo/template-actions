@@ -86,10 +86,10 @@ class BridgeTests(unittest.TestCase):
 
     def test_site_host_matches_valid_https_env(self):
         self.assertEqual(bridge.configured_client_host(
-            'WC_URL_CLIENT="https://demo.example.com/"\\n'), "demo.example.com")
+            'WC_URL_CLIENT="https://demo.example.com/"\n'), "demo.example.com")
         for text in ("", "WC_URL_CLIENT=http://demo.example.com",
                      "WC_URL_CLIENT=https://example.com/path",
-                     "WC_URL_CLIENT=https://a.example\\nWC_URL_CLIENT=https://b.example"):
+                     "WC_URL_CLIENT=https://a.example\nWC_URL_CLIENT=https://b.example"):
             with self.assertRaises(BridgeError):
                 bridge.configured_client_host(text)
 
