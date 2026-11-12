@@ -67,14 +67,14 @@ jobs:
           client_host,client_origin=origin('WC_URL_CLIENT')
           if wp_host==client_host:
               raise RuntimeError('WordPress and frontend origins cannot be identical')
-          # Same as inherited NCKH workflow, but migrate-safe: target is
-          # derived exclusively from the validated WC_URL_CLIENT, not a new var.
+          # Derive the target exclusively from validated WC_URL_CLIENT.
           target='/domains/'+client_host+'/public_html/'
           if os.environ.get('TEMPLATE_DEPLOY_REQUEST_DOMAIN')!=client_host:
               raise RuntimeError('Build trigger domain disagrees with WordPress frontend')
-          if any(x in vals for x in ('NCKH_GOOGLE_OAUTH_JSON','NCKH_SESSION_KEY',
-                                     'TEMPLATE_GOOGLE_OAUTH_JSON','TEMPLATE_SESSION_KEY',
-                                     'GOOGLE_OAUTH_STAGING_JSON')):
+          # Refuse tenant-private OAuth, session and key material in the public Astro build.
+          if any('OAUTH' in name.upper()
+                 or name.upper().endswith(('_SESSION_KEY', '_CLIENT_SECRET', '_PRIVATE_KEY'))
+                 for name in vals):
               raise RuntimeError('Private runtime credentials cannot be written into build .env')
           with open(os.environ['GITHUB_ENV'],'a',encoding='utf8') as out:
               out.write('TEMPLATE_CLIENT_HOST='+client_host+'\n')
@@ -88,8 +88,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test ! -d source/src/lib/nckh
-          test ! -d source/src/pages/api/nckh
           test ! -d source/src/pages/api/auth/google
       - name: Check signed unzip staging destination before any build or FTP
         shell: bash
@@ -118,8 +116,7 @@ jobs:
           node-version: '24'
           cache: pnpm
           cache-dependency-path: source/pnpm-lock.yaml
-      # Same production data cache model as Blue Sea: retain Astro's
-      # native .cache across fresh runners. No special Page/section filtering.
+      # Retain Astro's native .cache across fresh runners without Page/section filtering.
       - name: Restore and update Astro cache
         uses: actions/cache@v4
         with:

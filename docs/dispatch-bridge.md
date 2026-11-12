@@ -78,6 +78,5 @@ Every request is a real audited production action, not a dummy commit.
 - Source `master` may move between preflight and checkout: read target job
   provenance to verify **the exact** source SHA actually deployed.
 
-**Reference implementation:** Marine Aqua bridge
-`ngocnhanvo/marineaqua-actions` shipped and verified both event types
-without MCP; this Template is the reviewed, project-parameterized copy.
+The bridge is project-parameterized. Clone and verify the configuration using
+the destination project's own credentials, exact workflow IDs and run logs.

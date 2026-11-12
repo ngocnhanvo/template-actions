@@ -4,8 +4,7 @@ Repository: `ngocnhanvo/template-actions` (branch `main`).
 
 ## Source of truth and branches
 
-- Astro development/testing: `ngocnhanvo/template-astro` → `github`.
-- Astro production source: `ngocnhanvo/template-astro` → `master`.
+- Astro canonical source for reusable testing and production: `ngocnhanvo/template-astro` → `master`. The older `github` branch is not a source for cloning or deployment.
 - WordPress/PHP: `ngocnhanvo/template-php` → `master`.
 - Shared Chromium testing: `ngocnhanvo/knowledge-actions` (reusable workflow, no copying tests).
 - See `ngocnhanvo/knowledge` → `main` for the shared engineering rules.
@@ -48,6 +47,15 @@ For any future project-specific workflow that writes WordPress/CMS, keep the wri
 If a temporary CMS record is genuinely required, tag it with the project plus GitHub run ID, record its ID immediately, clean it in a `finally` path even when QA/build fails, and verify that zero tagged records remain. A cleanup failure is a failed job, not a PASS. Prefer existing published data or local fixtures whenever possible.
 
 Source-gate requests should also be built from the exact fetched target HEAD and preflighted before `request.ready` is created, so malformed patches do not consume a runner merely to fail `git apply --check`.
+
+## Reusable source regression (NO BUILD OR DEPLOY)
+
+`.github/workflows/template-source-regression.yml` runs read-only source checks
+against the current `template-astro/master` and `template-php/master`: all Astro
+Vitest tests, source-level removal of the bottom contact bar, PHP syntax,
+and tenant-neutral Marketing/SEO/Agent contracts. It can run manually or when
+its own workflow contract changes, and **never** uploads PHP or builds Astro.
+A successful source test is not a production deployment or visual QA pass.
 
 ## Separate operations
 
@@ -94,12 +102,3 @@ documented in `docs/dispatch-bridge.md`. GitHub's normal `push` event invokes
 the bridge, which checks SHA, active runs, event parameters and target jobs.
 Never create a no-op commit or modify workflow triggers to circumvent permissions.
 Template source commits alone never cause production dispatch.
-
-Actual successful reference: Marine Aqua PHP `workflow_dispatch` run
-[#43276847920](https://github.com/ngocnhanvo/marineaqua-actions/actions/runs/43276847920)
-and Astro `repository_dispatch` run
-[#43277360360](https://github.com/ngocnhanvo/marineaqua-actions/actions/runs/43277360360),
-both activated by the approved GitHub-only bridge. Browser QA was independently
-verified in run
-[#43278636054](https://github.com/ngocnhanvo/marineaqua-actions/actions/runs/43278636054).
-
