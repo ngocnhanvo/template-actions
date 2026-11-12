@@ -33,12 +33,19 @@ jobs:
           php -l source-php/wp-content/mu-plugins/esc-agent/src/Knowledge/ArticleKnowledgeRetriever.php
           php -l source-php/wp-content/mu-plugins/esc-agent/src/Knowledge/KnowledgeIndex.php
           php -l source-php/tests/template-tenant-isolation.test.php
+          php -l source-php/tests/template-agent-material.test.php
+          php -l source-php/wp-content/mu-plugins/esc-agent/src/Core/ProductBrowseFollowUpResolver.php
+          php -l source-php/wp-content/mu-plugins/esc-agent/src/Core/ProductClassificationResolver.php
+          php -l source-php/wp-content/mu-plugins/esc-agent/src/Skills/ProductDetailSkill.php
+          php -l source-php/wp-content/mu-plugins/esc-agent/src/Data/ProductMaterialExtractor.php
       - name: Run isolated reusable source contracts
         shell: bash
         run: |
           set -euo pipefail
           php source-php/tests/template-tenant-isolation.test.php
+          php source-php/tests/template-agent-material.test.php
           php source-php/wp-content/plugins/github-trigger/tests/build-status-portable.test.php
+          test ! -e source-php/wp-content/mu-plugins/esc-agent/src/Core/ProductConstructionKnowledgeResolver.php
           test ! -e source-php/esc-tool/template.sql.gz
           test ! -e source-php/esc-tool/template02.sql.gz
           test ! -e source-php/esc-tool/image.php
