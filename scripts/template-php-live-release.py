@@ -50,7 +50,6 @@ for name in FILES:
 assert (SOURCE/"template-unzip-v2.ready").read_text().strip()=="TEMPLATE_ASTRO_UNZIP_PROTOCOL=2"
 trigger_php = (SOURCE / "wp-content/plugins/github-trigger/vcs-build-trigger.php").read_text()
 assert "VCS_GH_REPO" in trigger_php
-assert "nghiencuukhoahoc-actions" not in trigger_php
 
 ftp=ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=25)
 id=secrets.token_hex(8)

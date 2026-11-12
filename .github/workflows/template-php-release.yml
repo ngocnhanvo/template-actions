@@ -29,7 +29,7 @@ jobs:
           token: ${{ secrets.SOURCE_REPO_PAT }}
           path: source-php
           persist-credentials: false
-      - name: PHP syntax and project identity
+      - name: PHP syntax and tenant isolation
         shell: bash
         run: |
           set -euo pipefail
@@ -40,7 +40,7 @@ jobs:
           php -l source-php/wp-content/plugins/github-trigger/vcs-build-trigger.php
           php -l source-php/wp-content/mu-plugins/esc-github-trigger-config.php
           php -l source-php/wp-content/mu-plugins/esc-seo-files.php
-          ! grep -Eqi 'nghiencuukhoahoc|EduResearch Hub' source-php/wp-content/mu-plugins/esc-seo-files.php
+          php source-php/tests/template-tenant-isolation.test.php
           php -l source-php/wp-content/plugins/github-trigger/tests/build-status-regression.php
           php source-php/wp-content/plugins/github-trigger/tests/build-status-regression.php
           test "$(cat source-php/template-unzip-v2.ready)" = 'TEMPLATE_ASTRO_UNZIP_PROTOCOL=2'
