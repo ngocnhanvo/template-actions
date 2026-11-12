@@ -1,31 +1,39 @@
 # ChatGPT — latest response
 
 - Date: 2026-11-13, Asia/Ho_Chi_Minh
-- Project: Template — reusable source for future website clones
-- Repository: `ngocnhanvo/template-actions@main`
-- Target repositories: `ngocnhanvo/template-astro@master`, `ngocnhanvo/template-php@master`
-- Status: SOURCE_COMMITTED, SOURCE_GATE_TESTS_PASS, PRODUCTION_NOT_DEPLOYED, BROWSER_QA_NOT_TESTED, CLEANUP_PARTIAL
+- Project: Template — clean reusable Astro + WordPress source for future clones
+- Source scope: `ngocnhanvo/template-astro@master`, `ngocnhanvo/template-php@master`, `ngocnhanvo/template-actions@main`
+- Status: SOURCE_CLEANUP_DONE, TESTS_PASS, NO_PRODUCTION_DEPLOY
+- Code mode: `normal`; Source write gate: `bypass` (explicit project setting)
 
-## Verified current checkpoint — 2026-11-13
+## Verified current HEAD (before this checkpoint commit)
 
-1. `template-php/master` **7da1c2bd3a886220179d547d836ccac0c4a1d503**: incremental Product logs opt-in pagination, cursor, snapshot integrity, backward compatibility and offline PHP contract tests. Gate [43295664359](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/43295664359) SUCCESS.
-2. `template-astro/master` **1067c4e3c18aa626f9711546aa18e7796fee9248**: full snapshot-safe Product log page fetch, sort by product name/price before pagination and preserve search sort; remove artificial homepage section height; open chatbot without blocking on Markdown/history; added tests. Gate [43297837909](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/43297837909) SUCCESS, **231 tests / 36 files**.
-3. `template-php/master` **f2cb7aaf145a7095c3cb58213a3d82f37c493009**: legacy ESC service integration requires explicit `ESC_API_ENABLED` opt-in; removed hardcoded private-project debug email and public credential-leaking debug endpoint; enabled TLS certificate/hostname verification. Gate [43299492949](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/43299492949) SUCCESS.
-4. `template-astro/master` **beff1b4aec15fe202cc77560ee8b53ef007bf457**: remove undefined legacy category-heading branch in reusable Product listing, retaining validated SEO heading. Gate [43299660612](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/43299660612) SUCCESS.
-5. Existing checkout shipping selector and backend Woo shipping/rate validations from 2026-11-11 are preserved; do not repeat prior successful tests. The older `template-astro/github` branch is behind `master` and must not be merged blindly.
-6. `Layout.astro` retains `BottomContactBar` and bottom padding intentionally: Template still uses this component unlike Marine Aqua. No unverified cross-project design copy was made.
+- Astro: `da696c24222a67a33b1184b396fa6b135955e4e0` — documentation updated after source cleanup.
+- PHP: `e542b2fb12816e63bfbfbb55affa86b8ffe924fe` — clean clone guidance and tenant-owned defaults.
+- Actions: `c710b9beed566c072f15ff7c473eaf662b3adc1c` — removed last hardcoded old-tenant assertions in PHP release and deployment script.
 
-## Remaining work / safeguards
+## Completed source cleanup
 
-- `source-commit-actions/config/targets.json` currently has `allow_deletions=false` for both Template source repos. Thus entire unused files/plugins were NOT physically deleted: do not bypass this gateway or weaken control policies implicitly. Optional ESC service integration is disabled by default but remains in source pending a permitted removal path with dependency/rollback analysis.
-- Woo checkout does NOT yet have durable server-side idempotency for repeated order submissions; browser-only duplicate-submit prevention remains. This is an independent checkout completion task requiring safe implementation/test without creating live customer orders.
-- Source commits are NOT production deploy. Code mode `normal` prevents FTP upload / Astro production build without separate approval. No live browser checkout, Visual Builder save/readback or production parity QA was run in this session.
-- Check branch HEAD and source-gate runs before any subsequent edits. Prior source gates [43295548853], [43297232795], [43298988233] failed due READY marker / patch context / trailing blank line and were superseded by corrected SUCCESS runs above. Do not rerun them.
+1. `template-astro/master@c81a5ce8b2db1de88e53ba37df14ed686bda6f03`: **physically deleted** `src/astro/components/Layout/BottomContactBar.astro`, removed import/mount, fixed bottom footer padding, sticky class observer and chat/back-to-top offsets. Applies to desktop and mobile; independent AI chat preserved.
+2. `template-astro/master@4478aa5824480154c6f000218d5d7fbb03ecccd1`: removed inherited site-specific branding in tests/docs, renamed `legacyPageHeadings` into generic `pageHeadings`, and removed identity wrappers while preserving route and CMS SEO behavior.
+3. `template-php/master@43fe9be5fbe1f99eb37772b465c647403bba5153`: physically deleted two files of the old domain-registration integration plugin, without touching shared TablePress, Visual Builder, WooCommerce or Agent.
+4. `template-astro/master@85ba5ddb7e23f7402df93125872fc23316fed7ce`: added regression tests for removed bar, portable CMS headings and route detection; central source gate [43310931637](https://github.com/ngocnhanvo/source-commit-actions/actions/runs/43310931637) SUCCESS: **37 files, 232 tests PASS**.
+5. `template-actions/main@641a6a7707a48cf44bdeadd4769624bc71713ce0`: added dedicated no-build/no-deploy source regression for Astro and PHP. CI [43309704591](https://github.com/ngocnhanvo/template-actions/actions/runs/43309704591), attempt 2: both PHP and Astro jobs PASS on latest source.
+6. `template-actions/main@cd2a4804bec6d69634662ecfd7c8be5cc599124a`: removed obsolete project-porting historical documents, project-specific notes, and old project references from active README and deployment comments.
+7. `template-actions/main@c710b9beed566c072f15ff7c473eaf662b3adc1c`: replaced old-tenant brand checks with generic `template-tenant-isolation.test.php` validation, removed redundant project-specific action name check. Existing deployment transport CI [43312143062](https://github.com/ngocnhanvo/template-actions/actions/runs/43312143062) SUCCESS without FTP/build.
+8. Scope audit: scanned first-party Astro code (components, pages, scripts, libraries), 139 PHP custom MU-plugin, GitHub Trigger, Agent, Visual Builder, gitlocal and cloudflare-trigger files, and active Actions text sources; no remaining old project domain/brand values found after cleanup in scanned first-party source. Third-party WordPress plugins and framework ESC identifiers intentionally preserved. Prior Git history is preserved; source-tree cleanup is not Git history rewrite.
 
-## Latest user-facing response
+## Release boundary and independent backlog
 
-Reusable PHP Product logs and Astro enhancements have been ported and tested; Template PHP security/legacy integration was made opt-in and scrubbed of debug exposure. Undefined legacy heading branch removed. Whole-file deletions remain constrained by the source gateway; no production deployment or browser QA performed. Checkout server-side idempotency remains unresolved.
+- **No production Astro build/deploy and no PHP FTP upload.** Code mode `normal` requires separate approval; source changes are not visible on public production until an authorized release.
+- Live browser QA on a new production build was not performed. Offline unit and source CI passed.
+- Persistent backend checkout idempotency from older unrelated checkout work remains open, but it does not block the specifically requested removal of `BottomContactBar` and old project traces.
+- The `github` branch of Astro is older; use verified `master` as cloning baseline, do not merge older branch into it blindly.
+
+## Latest intended user-facing reply
+
+Đã hoàn tất phần dọn source Template: thanh `BottomContactBar` đã xóa khỏi cả mobile/desktop, bỏ các padding/offset và đoạn xử lý sticky liên quan; giữ chatbot AI. Plugin đăng ký tên miền của dự án cũ, các nhãn/logic SEO kế thừa và tài liệu/cấu hình cũ không còn trong cây source đang sử dụng. Astro có 232/232 test PASS; bộ kiểm tra PHP và CI vận chuyển cũng PASS. Chưa deploy production theo chế độ `normal`; chỉ còn bước phát hành nếu muốn trang production áp dụng bản mới.
 
 Chế độ code: normal
-Cổng ghi source: source-commit-actions (chưa có giá trị)
-Trạng thái: PARTIAL — chưa hoàn tất
+Cổng ghi source: bypass
+Trạng thái: DONE — hoàn tất
