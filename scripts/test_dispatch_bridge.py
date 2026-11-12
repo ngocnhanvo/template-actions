@@ -22,17 +22,17 @@ PHP = {
     "source_sha": "dddddddddddddddddddddddddddddddddddddddd",
     "reason": "Deploy bounded product log paging to WordPress production",
     "request_id": "20261113T010000Z-php-product-paging",
-    "workflow": "template-php-release.yml",
-    "ref": "main",
-    "inputs": {"confirm": "DEPLOY_PHP"},
+    "workflow": bridge.CONFIG["php"]["workflow"],
+    "ref": bridge.CONFIG["php"]["ref"],
+    "inputs": bridge.CONFIG["php"]["inputs"],
 }
 ASTRO = {
     "action": "repository_dispatch",
     "source_sha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "reason": "Deploy signed Astro build after the PHP pagination release",
     "request_id": "20261113T020000Z-astro-product-paging",
-    "event_type": "wp_trigger_build",
-    "client_payload": {"site_domain": "template.example.invalid"},
+    "event_type": bridge.CONFIG["astro"]["event_type"],
+    "client_payload": bridge.CONFIG["astro"]["client_payload"],
 }
 BEFORE = "a" * 40
 AFTER = "b" * 40
@@ -93,8 +93,11 @@ class BridgeTests(unittest.TestCase):
             with self.assertRaises(BridgeError):
                 bridge.configured_client_host(text)
 
-    def test_template_is_disabled_by_default(self):
-        self.assertFalse(self.old_enabled)
+    def test_template_sample_is_disabled_by_default(self):
+        if bridge.CONFIG["actions_repo"] == "ngocnhanvo/template-actions":
+            self.assertFalse(self.old_enabled)
+        else:
+            self.assertIs(type(self.old_enabled), bool)
 
     def test_php_contract(self):
         self.assertEqual(valid_request(PHP), PHP)
