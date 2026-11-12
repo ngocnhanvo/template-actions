@@ -1,0 +1,78 @@
+name: Template reusable source regression (NO BUILD OR DEPLOY)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/template-source-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-source:
+    name: PHP tenant isolation and source safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ngocnhanvo/template-php
+          ref: master
+          token: ${{ secrets.SOURCE_REPO_PAT }}
+          path: source-php
+          persist-credentials: false
+      - name: Validate modified PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l source-php/wp-content/mu-plugins/esc-marketing-settings.php
+          php -l source-php/wp-content/mu-plugins/esc-seo-files.php
+          php -l source-php/wp-content/mu-plugins/esc-product-seo-h1.php
+          php -l source-php/wp-content/mu-plugins/esc-agent/src/Knowledge/ArticleKnowledgeRetriever.php
+          php -l source-php/wp-content/mu-plugins/esc-agent/src/Knowledge/KnowledgeIndex.php
+          php -l source-php/tests/template-tenant-isolation.test.php
+      - name: Run isolated reusable source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          php source-php/tests/template-tenant-isolation.test.php
+          php source-php/wp-content/plugins/github-trigger/tests/build-status-portable.test.php
+          test ! -e source-php/esc-tool/template.sql.gz
+          test ! -e source-php/esc-tool/template02.sql.gz
+          test ! -e source-php/esc-tool/image.php
+          test ! -e source-php/wp-content/plugins/esc-cocart-integration/esc-cocart-integration.php
+
+  astro-source:
+    name: Astro unit and removed-bar contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ngocnhanvo/template-astro
+          ref: master
+          token: ${{ secrets.SOURCE_REPO_PAT }}
+          path: source-astro
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: source-astro/pnpm-lock.yaml
+      - name: Install Astro dependencies
+        working-directory: source-astro
+        run: pnpm install --frozen-lockfile
+      - name: Run full source unit suite (no Astro build)
+        working-directory: source-astro
+        run: pnpm test:run
+      - name: Verify obsolete contact-bar source is completely removed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e source-astro/src/astro/components/Layout/BottomContactBar.astro
+          ! grep -R -E 'BottomContactBar|bottom-contact-bar|header-sticky-active|legacyPageHeadings' source-astro/src
