@@ -1,0 +1,53 @@
+name: Template Actions approved dispatch bridge (NO PIPELINE REPLACEMENT)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dispatch-bridge.yml'
+      - 'scripts/dispatch-bridge.py'
+      - 'scripts/test_dispatch_bridge.py'
+      - 'dispatch-bridge.config.json'
+      - 'dispatch-requests/*.json'
+permissions:
+  contents: read
+concurrency:
+  group: template-approved-dispatch-bridge
+  cancel-in-progress: false
+jobs:
+  check:
+    name: Offline bridge contract validation (NO DEPLOY)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile and test bridge without GitHub secrets
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/dispatch-bridge.py scripts/test_dispatch_bridge.py
+          python3 -m unittest discover -s scripts -p 'test_dispatch_bridge.py' -v
+
+  dispatch:
+    name: Dispatch only one newly approved release request
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate new request, source SHA and target contract; dispatch existing workflow
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REPO_PAT: ${{ secrets.SOURCE_REPO_PAT }}
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          set -euo pipefail
+          python3 scripts/dispatch-bridge.py

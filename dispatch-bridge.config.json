@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "enabled": false,
+  "actions_repo": "ngocnhanvo/template-actions",
+  "php": {
+    "workflow": "template-php-release.yml",
+    "source_repo": "ngocnhanvo/template-php",
+    "source_branch": "master",
+    "ref": "main",
+    "inputs": {
+      "confirm": "DEPLOY_PHP"
+    }
+  },
+  "astro": {
+    "workflow": "template-production-deploy.yml",
+    "source_repo": "ngocnhanvo/template-astro",
+    "source_branch": "master",
+    "event_type": "wp_trigger_build",
+    "client_payload": {
+      "site_domain": "template.example.invalid"
+    }
+  }
+}
