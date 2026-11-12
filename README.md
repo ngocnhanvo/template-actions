@@ -73,31 +73,31 @@ live WordPress database.
 
 ## Reusable GitHub-only Dispatch Bridge (inherited by future projects)
 
-This Template includes \`.github/workflows/dispatch-bridge.yml\`, \`scripts/dispatch-bridge.py\`,
-\`scripts/test_dispatch_bridge.py\`, and \`dispatch-bridge.config.json\`. It sends
-**only** \`workflow_dispatch\` or \`repository_dispatch\` events into the existing
+This Template includes `.github/workflows/dispatch-bridge.yml`, `scripts/dispatch-bridge.py`,
+`scripts/test_dispatch_bridge.py`, and `dispatch-bridge.config.json`. It sends
+**only** `workflow_dispatch` or `repository_dispatch` events into the existing
 PHP release / Astro production workflow. It is not a second build/deploy pipeline
 and requires no MCP, additional hosting or ChatGPT plugin.
 
-**Disabled by default** (\`"enabled": false\`). After copying template-actions
-to a new project's actual \`-actions\` repo, review/edit *all* bindings in
-\`dispatch-bridge.config.json\`: \`actions_repo\`, both source repos, workflow IDs,
-branch, \`client_payload.site_domain\` matching \`WC_URL_CLIENT\`. Confirm
-\`SOURCE_REPO_PAT\` and \`ENV_FILE\` secrets are present, workflow contents/actions
+**Disabled by default** (`"enabled": false`). After copying template-actions
+to a new project's actual `-actions` repo, review/edit *all* bindings in
+`dispatch-bridge.config.json`: `actions_repo`, both source repos, workflow IDs,
+branch, `client_payload.site_domain` matching `WC_URL_CLIENT`. Confirm
+`SOURCE_REPO_PAT` and `ENV_FILE` secrets are present, workflow contents/actions
 permissions work, and that the owner authorized production release in the
-applicable code mode. Only then explicitly set \`enabled: true\`.
+applicable code mode. Only then explicitly set `enabled: true`.
 
 To trigger a requested production release using only the standard GitHub
 connection, create one **real, new, single-purpose** request JSON file
-\`dispatch-requests/YYYYMMDDTHHMMSSZ-action-description.json\` exactly as
-documented in \`docs/dispatch-bridge.md\`. GitHub's normal \`push\` event invokes
+`dispatch-requests/YYYYMMDDTHHMMSSZ-action-description.json` exactly as
+documented in `docs/dispatch-bridge.md`. GitHub's normal `push` event invokes
 the bridge, which checks SHA, active runs, event parameters and target jobs.
 Never create a no-op commit or modify workflow triggers to circumvent permissions.
 Template source commits alone never cause production dispatch.
 
-Actual successful reference: Marine Aqua PHP \`workflow_dispatch\` run
+Actual successful reference: Marine Aqua PHP `workflow_dispatch` run
 [#43276847920](https://github.com/ngocnhanvo/marineaqua-actions/actions/runs/43276847920)
-and Astro \`repository_dispatch\` run
+and Astro `repository_dispatch` run
 [#43277360360](https://github.com/ngocnhanvo/marineaqua-actions/actions/runs/43277360360),
 both activated by the approved GitHub-only bridge. Browser QA was independently
 verified in run
