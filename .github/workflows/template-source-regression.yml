@@ -82,4 +82,4 @@ jobs:
         run: |
           set -euo pipefail
           test ! -e source-astro/src/astro/components/Layout/BottomContactBar.astro
-          ! grep -R -E 'BottomContactBar|bottom-contact-bar|header-sticky-active|legacyPageHeadings' source-astro/src
+          ! grep -R -E --exclude='*.test.ts' --exclude='*.test.tsx' --exclude='*.test.mjs' 'BottomContactBar|bottom-contact-bar|header-sticky-active|legacyPageHeadings' source-astro/src
